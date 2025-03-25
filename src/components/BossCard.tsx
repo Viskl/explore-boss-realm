@@ -1,6 +1,6 @@
 
 import { useNavigate } from "react-router-dom";
-import { MapPin, Trophy, Users, Clock, BrainCircuit } from "lucide-react";
+import { MapPin, Trophy, Users, Clock, BrainCircuit, Circle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -14,6 +14,7 @@ export interface BossCardProps {
   teamSize: number;
   timeLimit: string;
   distance?: string;
+  challengeType?: "quiz" | "tictactoe";
 }
 
 const BossCard = ({
@@ -26,6 +27,7 @@ const BossCard = ({
   teamSize,
   timeLimit,
   distance,
+  challengeType = "quiz",
 }: BossCardProps) => {
   const navigate = useNavigate();
   
@@ -41,6 +43,23 @@ const BossCard = ({
     legendary: "Legendary",
   };
   
+  const getChallengeIcon = () => {
+    if (challengeType === "tictactoe") {
+      return (
+        <div className="flex items-center">
+          <Circle size={14} className="text-blue-500" />
+          <X size={14} className="text-red-500 -ml-1" />
+        </div>
+      );
+    } else {
+      return <BrainCircuit size={18} className="text-blue-500 mb-1" />;
+    }
+  };
+  
+  const getChallengeTypeText = () => {
+    return challengeType === "tictactoe" ? "Tic-Tac-Toe" : "Quiz";
+  };
+  
   return (
     <div className="overflow-hidden rounded-xl bg-white border shadow-md">
       <div className="relative aspect-video overflow-hidden">
@@ -54,6 +73,16 @@ const BossCard = ({
         <div className="absolute top-3 left-3">
           <Badge className={`px-3 py-1 font-medium ${difficultyColors[difficulty]}`}>
             {difficultyLabels[difficulty]}
+          </Badge>
+        </div>
+        
+        {/* Challenge Type Badge */}
+        <div className="absolute top-3 right-12">
+          <Badge variant="outline" className="bg-white/80 backdrop-blur-sm border-none px-2 py-1">
+            <span className="flex items-center gap-1">
+              {getChallengeIcon()}
+              <span className="text-xs">{getChallengeTypeText()}</span>
+            </span>
           </Badge>
         </div>
         

@@ -1,9 +1,11 @@
+
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Trophy, MapPin, Users, Clock, Shield, Zap, BrainCircuit, Gauge, Share } from "lucide-react";
 import Button from "@/components/Button";
 import QRCode from "@/components/QRCode";
 import QuizComponent from "@/components/QuizComponent";
+import TicTacToeGame from "@/components/TicTacToeGame";
 import { Question } from "@/components/QuizComponent";
 
 const BOSSES = {
@@ -18,6 +20,7 @@ const BOSSES = {
     teamSize: 1,
     timeLimit: "10 min",
     distance: "0.3 mi",
+    challengeType: "quiz",
     stats: {
       health: 70,
       power: 40,
@@ -62,6 +65,7 @@ const BOSSES = {
     teamSize: 2,
     timeLimit: "15 min",
     distance: "0.8 mi",
+    challengeType: "quiz",
     stats: {
       health: 85,
       power: 75,
@@ -112,6 +116,7 @@ const BOSSES = {
     teamSize: 3,
     timeLimit: "20 min",
     distance: "1.2 mi",
+    challengeType: "quiz",
     stats: {
       health: 95,
       power: 90,
@@ -161,13 +166,14 @@ const BOSSES = {
     id: "featured",
     name: "Today's Featured Boss",
     image: "https://images.unsplash.com/photo-1633478062482-790967a4169c?q=80&w=3088&auto=format&fit=crop",
-    description: "A special challenge that changes daily. Today's quiz tests your knowledge of popular culture and entertainment.",
+    description: "A special challenge that changes daily. Today's challenge tests your skills in the classic game of Tic-Tac-Toe against an AI opponent.",
     location: "City Center Mall",
     difficulty: "epic",
     reward: "Buy One Get One Free at Jamba Juice",
-    teamSize: 2,
+    teamSize: 1,
     timeLimit: "15 min",
     distance: "0.5 mi",
+    challengeType: "tictactoe",
     stats: {
       health: 80,
       power: 70,
@@ -180,26 +186,7 @@ const BOSSES = {
       validUntil: "Today Only",
       logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Jamba_2017.svg/2560px-Jamba_2017.svg.png"
     },
-    quiz: [
-      {
-        id: 1,
-        text: "Which streaming service originally released 'Stranger Things'?",
-        options: ["Netflix", "Hulu", "Amazon Prime", "Disney+"],
-        correctAnswer: 0
-      },
-      {
-        id: 2,
-        text: "Who played Iron Man in the Marvel Cinematic Universe?",
-        options: ["Chris Evans", "Chris Hemsworth", "Robert Downey Jr.", "Mark Ruffalo"],
-        correctAnswer: 2
-      },
-      {
-        id: 3,
-        text: "Which band performed the song 'Bohemian Rhapsody'?",
-        options: ["The Beatles", "Queen", "Led Zeppelin", "Pink Floyd"],
-        correctAnswer: 1
-      }
-    ]
+    quiz: []
   }
 };
 
@@ -208,7 +195,7 @@ const BossDetails = () => {
   const navigate = useNavigate();
   const [showReward, setShowReward] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [inQuiz, setInQuiz] = useState(false);
+  const [inChallenge, setInChallenge] = useState(false);
   
   const boss = BOSSES[id as keyof typeof BOSSES];
   
@@ -245,21 +232,64 @@ const BossDetails = () => {
     // Simulate loading time
     setTimeout(() => {
       setIsLoading(false);
-      setInQuiz(true);
+      setInChallenge(true);
     }, 1000);
   };
   
-  const handleQuizComplete = (score: number) => {
-    const passingScore = Math.ceil(boss.quiz.length * 0.6); // 60% to pass
-    
-    if (score >= passingScore) {
+  const handleChallengeComplete = (success: boolean) => {
+    if (success) {
       setShowReward(true);
-      setInQuiz(false);
+      setInChallenge(false);
     } else {
-      // Failed the quiz
-      alert(`You scored ${score}/${boss.quiz.length}. You need at least ${passingScore} correct answers to defeat ${boss.name}. Try again!`);
-      setInQuiz(false);
+      // Failed the challenge
+      if (boss.challengeType === "quiz") {
+        alert(`You need at least 60% correct answers to defeat ${boss.name}. Try again!`);
+      } else {
+        alert(`You failed to defeat ${boss.name}. Try again!`);
+      }
+      setInChallenge(false);
     }
+  };
+  
+  const renderChallenge = () => {
+    if (boss.challengeType === "quiz") {
+      return (
+        <QuizComponent 
+          questions={boss.quiz}
+          onComplete={handleChallengeComplete}
+          bossName={boss.name}
+        />
+      );
+    } else if (boss.challengeType === "tictactoe") {
+      return (
+        <TicTacToeGame
+          onComplete={handleChallengeComplete}
+          difficulty={boss.difficulty}
+        />
+      );
+    }
+    
+    return null;
+  };
+  
+  const getChallengeTypeIcon = () => {
+    if (boss.challengeType === "quiz") {
+      return <BrainCircuit size={24} className="text-primary mb-2" />;
+    } else if (boss.challengeType === "tictactoe") {
+      return <div className="flex mb-2"><Circle size={20} className="text-primary mr-1" /><X size={20} className="text-primary" /></div>;
+    }
+    
+    return <BrainCircuit size={24} className="text-primary mb-2" />;
+  };
+  
+  const getChallengeTypeName = () => {
+    if (boss.challengeType === "quiz") {
+      return "Quiz Challenge";
+    } else if (boss.challengeType === "tictactoe") {
+      return "Tic-Tac-Toe";
+    }
+    
+    return "Challenge";
   };
   
   return (
@@ -301,22 +331,18 @@ const BossDetails = () => {
             </div>
           </div>
         </div>
-      ) : inQuiz ? (
+      ) : inChallenge ? (
         <div className="min-h-screen p-6">
           <div className="max-w-lg mx-auto">
             <Button
               variant="ghost"
               className="mb-4"
-              onClick={() => setInQuiz(false)}
+              onClick={() => setInChallenge(false)}
             >
               <ArrowLeft size={20} className="mr-2" /> Back to Boss Info
             </Button>
             
-            <QuizComponent 
-              questions={boss.quiz}
-              onComplete={handleQuizComplete}
-              bossName={boss.name}
-            />
+            {renderChallenge()}
           </div>
         </div>
       ) : (
@@ -389,8 +415,8 @@ const BossDetails = () => {
               </div>
               
               <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-secondary/50">
-                <BrainCircuit size={24} className="text-primary mb-2" />
-                <span className="text-sm font-medium">Quiz Challenge</span>
+                {getChallengeTypeIcon()}
+                <span className="text-sm font-medium">{getChallengeTypeName()}</span>
               </div>
             </div>
             
@@ -431,7 +457,7 @@ const BossDetails = () => {
               isLoading={isLoading}
               className="shadow-xl"
             >
-              Start Quiz Challenge
+              Start {getChallengeTypeName()}
             </Button>
           </div>
         </>

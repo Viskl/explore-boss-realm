@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { BrainCircuit, Circle, X } from "lucide-react";
 
 interface HotspotMarkerProps {
   id: string;
@@ -8,9 +9,10 @@ interface HotspotMarkerProps {
   difficulty: "rare" | "epic" | "legendary";
   name: string;
   distance?: string;
+  challengeType?: "quiz" | "tictactoe";
 }
 
-const HotspotMarker = ({ id, position, difficulty, name, distance }: HotspotMarkerProps) => {
+const HotspotMarker = ({ id, position, difficulty, name, distance, challengeType = "quiz" }: HotspotMarkerProps) => {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
   
@@ -19,6 +21,22 @@ const HotspotMarker = ({ id, position, difficulty, name, distance }: HotspotMark
     rare: "bg-blue-500",
     epic: "bg-purple-500",
     legendary: "bg-amber-500",
+  };
+  
+  const getChallengeIcon = () => {
+    if (challengeType === "tictactoe") {
+      return (
+        <div className="absolute bottom-0 right-0 transform translate-x-1/2 translate-y-1/2 bg-white rounded-full p-0.5 border border-gray-300 shadow-sm">
+          <X size={10} className="text-red-500" />
+        </div>
+      );
+    } else {
+      return (
+        <div className="absolute bottom-0 right-0 transform translate-x-1/2 translate-y-1/2 bg-white rounded-full p-0.5 border border-gray-300 shadow-sm">
+          <BrainCircuit size={10} className="text-blue-500" />
+        </div>
+      );
+    }
   };
   
   return (
@@ -30,8 +48,9 @@ const HotspotMarker = ({ id, position, difficulty, name, distance }: HotspotMark
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Marker point */}
-      <div className={`w-5 h-5 rounded-full ${difficultyColors[difficulty]} z-10 border-2 border-white`}>
+      <div className={`w-5 h-5 rounded-full ${difficultyColors[difficulty]} z-10 border-2 border-white relative`}>
         <span className="sr-only">{name}</span>
+        {getChallengeIcon()}
       </div>
       
       {/* Tooltip label */}

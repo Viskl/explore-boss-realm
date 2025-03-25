@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Trophy, MapPin, Users, Clock, Shield, Zap, BrainCircuit, Gauge, Share } from "lucide-react";
+import { ArrowLeft, Trophy, MapPin, Users, Clock, Shield, Zap, BrainCircuit, Gauge, Share, Circle, X } from "lucide-react";
 import Button from "@/components/Button";
 import QRCode from "@/components/QRCode";
 import QuizComponent from "@/components/QuizComponent";
@@ -261,10 +260,15 @@ const BossDetails = () => {
         />
       );
     } else if (boss.challengeType === "tictactoe") {
+      // Convert string difficulty to proper type
+      const tictactoeDifficulty = (boss.difficulty === "rare" || boss.difficulty === "epic" || boss.difficulty === "legendary") 
+        ? boss.difficulty 
+        : "epic" as const;
+      
       return (
         <TicTacToeGame
           onComplete={handleChallengeComplete}
-          difficulty={boss.difficulty}
+          difficulty={tictactoeDifficulty}
         />
       );
     }

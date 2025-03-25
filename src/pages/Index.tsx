@@ -1,12 +1,21 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Compass, MapPin, Trophy, Sparkles } from "lucide-react";
 import Button from "@/components/Button";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
+  const { user } = useAuth();
+  
+  useEffect(() => {
+    // If user is already authenticated, redirect to the map page
+    if (user) {
+      navigate("/map");
+    }
+  }, [user, navigate]);
   
   const onboardingSteps = [
     {
@@ -38,11 +47,18 @@ const Index = () => {
   
   return (
     <div className="flex flex-col min-h-screen justify-between bg-gradient-to-b from-background to-secondary/30">
-      <header className="px-6 pt-12 pb-4 flex justify-center">
+      <header className="px-6 pt-12 pb-4 flex justify-between items-center">
         <div className="flex items-center gap-2">
           <Sparkles size={28} className="text-primary" />
           <h1 className="text-2xl font-bold text-foreground tracking-tight">BossHunt</h1>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate("/auth")}
+        >
+          Sign In
+        </Button>
       </header>
       
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-8">

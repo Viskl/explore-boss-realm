@@ -1,14 +1,42 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User, Medal, Settings, LogOut, ChevronRight, Edit, Camera } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Button from "@/components/Button";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 const Profile = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
+  const { user, profile, signOut, isLoading } = useAuth();
+  const { toast } = useToast();
   
-  if (!isLoggedIn) {
-    return <LoginView onLogin={() => setIsLoggedIn(true)} />;
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate("/auth");
+    }
+  }, [user, isLoading, navigate]);
+  
+  if (isLoading) {
+    return <LoadingView />;
   }
+  
+  if (!user || !profile) {
+    return null; // Will redirect to auth due to useEffect
+  }
+  
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate("/auth");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
   
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -21,7 +49,15 @@ const Profile = () => {
         <div className="mb-8 flex items-center">
           <div className="relative">
             <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center overflow-hidden border">
-              <User size={40} className="text-muted-foreground" />
+              {profile.avatar_url ? (
+                <img 
+                  src={profile.avatar_url} 
+                  alt={profile.username} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User size={40} className="text-muted-foreground" />
+              )}
             </div>
             <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shadow-md">
               <Camera size={16} />
@@ -29,8 +65,8 @@ const Profile = () => {
           </div>
           
           <div className="ml-4">
-            <h2 className="text-xl font-bold">Hunter123</h2>
-            <p className="text-sm text-muted-foreground">hunter@example.com</p>
+            <h2 className="text-xl font-bold">{profile.username}</h2>
+            <p className="text-sm text-muted-foreground">{user.email}</p>
             <button className="mt-1 text-xs text-primary flex items-center">
               <Edit size={12} className="mr-1" />
               Edit Profile
@@ -44,17 +80,17 @@ const Profile = () => {
           <div className="grid grid-cols-3 gap-4">
             <StatCard
               label="Bosses Defeated"
-              value="12"
+              value={profile.bosses_defeated.toString()}
               icon={<Trophy />}
             />
             <StatCard
               label="Rewards Earned"
-              value="10"
+              value={profile.rewards_earned.toString()}
               icon={<Reward />}
             />
             <StatCard
               label="Player Level"
-              value="6"
+              value={profile.level.toString()}
               icon={<Medal />}
             />
           </div>
@@ -87,7 +123,7 @@ const Profile = () => {
           variant="ghost"
           className="text-red-500 hover:text-red-600 hover:bg-red-50 w-full justify-start"
           leftIcon={<LogOut size={16} />}
-          onClick={() => setIsLoggedIn(false)}
+          onClick={handleSignOut}
         >
           Sign Out
         </Button>
@@ -96,105 +132,11 @@ const Profile = () => {
   );
 };
 
-interface LoginViewProps {
-  onLogin: () => void;
-}
-
-const LoginView = ({ onLogin }: LoginViewProps) => {
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const handleLogin = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      onLogin();
-    }, 1500);
-  };
-  
-  return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-b from-background to-secondary/30">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-4">
-            <User size={40} className="text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold mb-2">Sign In</h1>
-          <p className="text-muted-foreground">
-            Continue your boss hunting journey
-          </p>
-        </div>
-        
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="email" className="text-sm font-medium block mb-1">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              placeholder="Enter your email"
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-          </div>
-          
-          <div>
-            <div className="flex justify-between mb-1">
-              <label htmlFor="password" className="text-sm font-medium">
-                Password
-              </label>
-              <a href="#" className="text-sm text-primary">
-                Forgot password?
-              </a>
-            </div>
-            <input
-              id="password"
-              type="password"
-              placeholder="Enter your password"
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-          </div>
-          
-          <Button
-            fullWidth
-            size="lg"
-            isLoading={isLoading}
-            onClick={handleLogin}
-          >
-            Sign In
-          </Button>
-          
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t"></div>
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-background px-4 text-sm text-muted-foreground">
-                Or continue with
-              </span>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 gap-3">
-            <Button
-              fullWidth
-              variant="outline"
-              leftIcon={<Google />}
-            >
-              Google
-            </Button>
-          </div>
-          
-          <p className="text-center text-sm mt-6">
-            Don't have an account?{" "}
-            <a href="#" className="text-primary font-medium">
-              Sign up
-            </a>
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
+const LoadingView = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  </div>
+);
 
 // Icon components
 const Trophy = () => (
@@ -233,27 +175,6 @@ const Lock = () => (
     <path
       fill="currentColor"
       d="M18 8h-1V6c0-2.8-2.2-5-5-5S7 3.2 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.7 1.3-3 3-3s3 1.3 3 3v2H9V6zm9 14H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"
-    />
-  </svg>
-);
-
-const Google = () => (
-  <svg viewBox="0 0 24 24" className="w-5 h-5">
-    <path
-      fill="#EA4335"
-      d="M5.3 11.7c0-.7.1-1.3.3-1.9l-3-2.3C1.9 8.9 1.5 10.4 1.5 12s.4 3.1 1.1 4.5l3-2.3c-.2-.6-.3-1.3-.3-2"
-    />
-    <path
-      fill="#FBBC05"
-      d="M12 5.5c1.5 0 2.8.5 3.8 1.5l2.5-2.5C16.5 2.7 14.4 1.5 12 1.5c-3.6 0-6.7 2-8.2 5l3 2.3c.7-2.1 2.7-3.8 5.2-3.8"
-    />
-    <path
-      fill="#4285F4"
-      d="M12 18.5c-2.5 0-4.5-1.6-5.2-3.8l-3 2.3c1.6 3 4.6 5 8.2 5 2.2 0 4.3-1 5.8-2.7L15 16.4c-1 .7-2.1 1.1-3 1.1"
-    />
-    <path
-      fill="#34A853"
-      d="M18.5 12c0-.6-.1-1.2-.2-1.8h-6.3v3.8h3.6c-.3 1.3-1.1 2.4-2.1 3.1l2.8 2.2c1.7-1.6 2.7-4 2.7-6.8"
     />
   </svg>
 );

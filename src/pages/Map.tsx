@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { ArrowUp, Compass, List, Target, Filter } from "lucide-react";
+import { ArrowUp, Compass, List, Target, Filter, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import HotspotMarker from "@/components/HotspotMarker";
@@ -54,6 +54,7 @@ const Map = () => {
   const [viewMode, setViewMode] = useState<"map" | "list">("map");
   const [isLoading, setIsLoading] = useState(true);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const [mapReloadTrigger, setMapReloadTrigger] = useState(0);
   const { toast } = useToast();
   
   useEffect(() => {
@@ -67,6 +68,15 @@ const Map = () => {
   
   const handleSlideChange = (index: number) => {
     setActiveSlideIndex(index);
+  };
+
+  const resetMapToken = () => {
+    localStorage.removeItem('mapbox_token');
+    toast({
+      title: "Token Reset",
+      description: "Mapbox token has been reset. Reloading map...",
+    });
+    setMapReloadTrigger(prev => prev + 1); // Trigger map reload
   };
   
   return (
@@ -83,6 +93,7 @@ const Map = () => {
             <>
               {/* Mapbox Map Component */}
               <MapboxMap 
+                key={`map-instance-${mapReloadTrigger}`} // Force re-mount when token is reset
                 bosses={BOSSES} 
                 onSlideChange={handleSlideChange}
                 activeSlideIndex={activeSlideIndex}
@@ -102,13 +113,10 @@ const Map = () => {
                   variant="outline"
                   size="icon"
                   className="bg-white rounded-full shadow-md h-12 w-12"
-                  onClick={() => {
-                    // Clear local storage to force re-entry of the token
-                    localStorage.removeItem('mapbox_token');
-                    window.location.reload();
-                  }}
+                  onClick={resetMapToken}
+                  title="Reset Mapbox Token"
                 >
-                  <Target className="h-5 w-5 text-primary" />
+                  <RefreshCw className="h-5 w-5 text-primary" />
                 </Button>
               </div>
             </>

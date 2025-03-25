@@ -1,10 +1,21 @@
+
 import { useState, useEffect } from "react";
-import { ArrowUp, Compass, List, Filter, RefreshCw } from "lucide-react";
+import { ArrowUp, Compass, List, Filter, RefreshCw, MapPin, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BossCard from "@/components/BossCard";
 import { useNavigate } from "react-router-dom";
 import MapboxMap from "@/components/MapboxMap";
 import { useToast } from "@/components/ui/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 
 // Mock data for bosses with proper typing
 const BOSSES = [
@@ -52,6 +63,11 @@ const Map = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [mapKey, setMapKey] = useState(0);
+  const [mapboxToken, setMapboxToken] = useState<string | undefined>(() => {
+    // Try to get token from localStorage
+    return localStorage.getItem('mapbox_token') || undefined;
+  });
+  const [isTokenDialogOpen, setIsTokenDialogOpen] = useState(false);
   const { toast } = useToast();
   
   useEffect(() => {
@@ -74,6 +90,33 @@ const Map = () => {
     });
     setMapKey(prev => prev + 1); // Force component remount
   };
+
+  const saveMapboxToken = (token: string) => {
+    if (token.trim()) {
+      localStorage.setItem('mapbox_token', token);
+      setMapboxToken(token);
+      setIsTokenDialogOpen(false);
+      setMapKey(prev => prev + 1); // Force map reload with new token
+      toast({
+        title: "Token Saved",
+        description: "Your Mapbox token has been saved and will be used for map views.",
+      });
+    }
+  };
+
+  const openTokenDialog = () => {
+    setIsTokenDialogOpen(true);
+  };
+  
+  const clearMapboxToken = () => {
+    localStorage.removeItem('mapbox_token');
+    setMapboxToken(undefined);
+    setMapKey(prev => prev + 1); // Force map reload with default token
+    toast({
+      title: "Token Removed",
+      description: "Using default Mapbox token now.",
+    });
+  };
   
   return (
     <div className="relative h-full w-full">
@@ -93,6 +136,7 @@ const Map = () => {
                 bosses={BOSSES} 
                 onSlideChange={handleSlideChange}
                 activeSlideIndex={activeSlideIndex}
+                customMapboxToken={mapboxToken}
               />
               
               {/* Map controls */}
@@ -114,6 +158,26 @@ const Map = () => {
                 >
                   <RefreshCw className="h-5 w-5 text-primary" />
                 </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="bg-white rounded-full shadow-md h-12 w-12"
+                  onClick={openTokenDialog}
+                  title="Set Mapbox Token"
+                >
+                  <MapPin className="h-5 w-5 text-primary" />
+                </Button>
+                {mapboxToken && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="bg-white rounded-full shadow-md h-12 w-12"
+                    onClick={clearMapboxToken}
+                    title="Clear Custom Token"
+                  >
+                    <X className="h-5 w-5 text-destructive" />
+                  </Button>
+                )}
               </div>
             </>
           )}
@@ -166,6 +230,48 @@ const Map = () => {
           <ArrowUp size={20} />
         </button>
       )}
+
+      {/* Mapbox Token Dialog */}
+      <Dialog open={isTokenDialogOpen} onOpenChange={setIsTokenDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Enter Mapbox Token</DialogTitle>
+            <DialogDescription>
+              To use Mapbox features, you need to provide your own access token.
+              You can get one by signing up at <a href="https://www.mapbox.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline">mapbox.com</a>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="mapbox-token">Public Access Token</Label>
+              <Input 
+                id="mapbox-token" 
+                placeholder="pk.eyJ1..." 
+                defaultValue={mapboxToken || ''}
+                onChange={(e) => setMapboxToken(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Use your public token (starts with 'pk.'). Never share your secret token.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="sm:justify-between">
+            <Button 
+              type="button" 
+              variant="secondary" 
+              onClick={() => setIsTokenDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="button" 
+              onClick={() => saveMapboxToken(mapboxToken || '')}
+            >
+              Save Token
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

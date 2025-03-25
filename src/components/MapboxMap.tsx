@@ -8,33 +8,38 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface MapboxMapProps {
   bosses: any[];
   onSlideChange: (index: number) => void;
   activeSlideIndex: number;
+  customMapboxToken?: string;
 }
-
-// Mapbox token
-const MAPBOX_TOKEN = 'pk.eyJ1IjoiYWxleC1sb3ZhYmxlIiwiYSI6ImNsb2c2MmdpajBnOXUya3BiYmQ5OXpobDIifQ.Nmh-GJyh1C6KDjDoMHi4Yw';
 
 // Rzeszow, Poland coordinates
 const RZESZOW_LNG = 22.0047;
 const RZESZOW_LAT = 50.0412;
 
-const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) => {
+// Default Mapbox token - likely to fail based on console logs
+const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoiYWxleC1sb3ZhYmxlIiwiYSI6ImNsb2c2MmdpajBnOXUya3BiYmQ5OXpobDIifQ.Nmh-GJyh1C6KDjDoMHi4Yw';
+
+const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex, customMapboxToken }: MapboxMapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const navigate = useNavigate();
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
     
     try {
-      // Set the token
-      mapboxgl.accessToken = MAPBOX_TOKEN;
+      // Use custom token if provided, otherwise use default
+      const token = customMapboxToken || DEFAULT_MAPBOX_TOKEN;
+      mapboxgl.accessToken = token;
       
       // Create the map
       map.current = new mapboxgl.Map({
@@ -48,17 +53,20 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) 
       map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
       
       // Add geolocate control
-      map.current.addControl(new mapboxgl.GeolocateControl({
+      const geolocateControl = new mapboxgl.GeolocateControl({
         positionOptions: {
           enableHighAccuracy: true
         },
         trackUserLocation: true,
         showUserHeading: true
-      }));
+      });
+      
+      map.current.addControl(geolocateControl);
       
       // When map is loaded
       map.current.on('load', () => {
         setMapLoaded(true);
+        setMapError(null);
         console.log('Map loaded successfully!');
         
         // Add markers for bosses around Rzeszow
@@ -87,20 +95,28 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) 
             .setLngLat([longitude, latitude])
             .addTo(map.current!);
         });
+        
+        // Try to trigger the geolocate control
+        setTimeout(() => {
+          geolocateControl.trigger();
+        }, 1000);
       });
       
       // Handle map errors
       map.current.on('error', (e) => {
         console.error('Mapbox error:', e);
+        const errorMessage = e.error?.message || 'There was an error loading the map. Please refresh the page.';
+        setMapError(errorMessage);
         toast({
           title: 'Map Error',
-          description: 'There was an error loading the map. Please refresh the page.',
+          description: errorMessage,
           variant: 'destructive'
         });
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error initializing map:', error);
+      setMapError(error?.message || 'Failed to initialize the map. Please check your connection.');
       toast({
         title: 'Map Error',
         description: 'Failed to initialize the map. Please check your connection.',
@@ -115,7 +131,24 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) 
         map.current = null;
       }
     };
-  }, [bosses, navigate, toast]);
+  }, [bosses, navigate, toast, customMapboxToken]);
+
+  if (mapError) {
+    return (
+      <div className="h-full w-full flex flex-col items-center justify-center p-4">
+        <Alert variant="destructive" className="mb-4 max-w-md mx-auto">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Map Error</AlertTitle>
+          <AlertDescription>
+            There was an error loading the map. Please refresh the page.
+          </AlertDescription>
+        </Alert>
+        <p className="text-sm text-muted-foreground mb-2">
+          The map couldn't load due to an API token issue. You might need to use your own Mapbox token.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="relative h-full w-full">

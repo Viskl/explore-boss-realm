@@ -1,28 +1,29 @@
+
 import { useState, useEffect } from "react";
 import { User, Medal, Settings, LogOut, ChevronRight, Edit, Camera } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Button from "@/components/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { user, profile, signOut, isLoading } = useAuth();
   const { toast } = useToast();
+  const [loadingProfile, setLoadingProfile] = useState(true);
   
   useEffect(() => {
+    // If auth is no longer loading and there's no user, redirect to auth
     if (!isLoading && !user) {
       navigate("/auth");
     }
-  }, [user, isLoading, navigate]);
-  
-  if (isLoading) {
-    return <LoadingView />;
-  }
-  
-  if (!user || !profile) {
-    return null; // Will redirect to auth due to useEffect
-  }
+    
+    // If we have both user and profile, stop loading
+    if (user && profile) {
+      setLoadingProfile(false);
+    }
+  }, [user, profile, isLoading, navigate]);
   
   const handleSignOut = async () => {
     try {
@@ -38,6 +39,16 @@ const Profile = () => {
     }
   };
   
+  // Show LoadingView only when auth is still loading, not when profile is loading
+  if (isLoading) {
+    return <LoadingView />;
+  }
+  
+  // If auth loaded but there's no user, return null (useEffect will redirect)
+  if (!user) {
+    return null;
+  }
+  
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="px-6 py-8 max-w-lg mx-auto">
@@ -46,78 +57,84 @@ const Profile = () => {
           <p className="text-muted-foreground">Manage your account</p>
         </header>
         
-        <div className="mb-8 flex items-center">
-          <div className="relative">
-            <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center overflow-hidden border">
-              {profile.avatar_url ? (
-                <img 
-                  src={profile.avatar_url} 
-                  alt={profile.username} 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <User size={40} className="text-muted-foreground" />
-              )}
+        {loadingProfile ? (
+          <ProfileSkeleton />
+        ) : (
+          <>
+            <div className="mb-8 flex items-center">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center overflow-hidden border">
+                  {profile?.avatar_url ? (
+                    <img 
+                      src={profile.avatar_url} 
+                      alt={profile.username || ''} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User size={40} className="text-muted-foreground" />
+                  )}
+                </div>
+                <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shadow-md">
+                  <Camera size={16} />
+                </button>
+              </div>
+              
+              <div className="ml-4">
+                <h2 className="text-xl font-bold">{profile?.username || 'User'}</h2>
+                <p className="text-sm text-muted-foreground">{user.email}</p>
+                <button className="mt-1 text-xs text-primary flex items-center">
+                  <Edit size={12} className="mr-1" />
+                  Edit Profile
+                </button>
+              </div>
             </div>
-            <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shadow-md">
-              <Camera size={16} />
-            </button>
-          </div>
-          
-          <div className="ml-4">
-            <h2 className="text-xl font-bold">{profile.username}</h2>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
-            <button className="mt-1 text-xs text-primary flex items-center">
-              <Edit size={12} className="mr-1" />
-              Edit Profile
-            </button>
-          </div>
-        </div>
-        
-        <section className="mb-8">
-          <h2 className="text-lg font-bold mb-4">Stats</h2>
-          
-          <div className="grid grid-cols-3 gap-4">
-            <StatCard
-              label="Bosses Defeated"
-              value={profile.bosses_defeated.toString()}
-              icon={<Trophy />}
-            />
-            <StatCard
-              label="Rewards Earned"
-              value={profile.rewards_earned.toString()}
-              icon={<Reward />}
-            />
-            <StatCard
-              label="Player Level"
-              value={profile.level.toString()}
-              icon={<Medal />}
-            />
-          </div>
-        </section>
-        
-        <section className="mb-8">
-          <h2 className="text-lg font-bold mb-4">Settings</h2>
-          
-          <div className="space-y-2 rounded-lg border overflow-hidden">
-            <SettingItem
-              label="Notification Settings"
-              icon={<Bell />}
-            />
-            <SettingItem
-              label="Location Services"
-              icon={<MapPin />}
-            />
-            <SettingItem
-              label="Privacy Settings"
-              icon={<Lock />}
-            />
-            <SettingItem
-              label="App Preferences"
-              icon={<Settings />}
-            />
-          </div>
-        </section>
+            
+            <section className="mb-8">
+              <h2 className="text-lg font-bold mb-4">Stats</h2>
+              
+              <div className="grid grid-cols-3 gap-4">
+                <StatCard
+                  label="Bosses Defeated"
+                  value={profile?.bosses_defeated?.toString() || '0'}
+                  icon={<Trophy />}
+                />
+                <StatCard
+                  label="Rewards Earned"
+                  value={profile?.rewards_earned?.toString() || '0'}
+                  icon={<Reward />}
+                />
+                <StatCard
+                  label="Player Level"
+                  value={profile?.level?.toString() || '1'}
+                  icon={<Medal />}
+                />
+              </div>
+            </section>
+            
+            <section className="mb-8">
+              <h2 className="text-lg font-bold mb-4">Settings</h2>
+              
+              <div className="space-y-2 rounded-lg border overflow-hidden">
+                <SettingItem
+                  label="Notification Settings"
+                  icon={<Bell />}
+                />
+                <SettingItem
+                  label="Location Services"
+                  icon={<MapPin />}
+                />
+                <SettingItem
+                  label="Privacy Settings"
+                  icon={<Lock />}
+                />
+                <SettingItem
+                  label="App Preferences"
+                  icon={<Settings />}
+                />
+              </div>
+            </section>
+          </>
+        )}
         
         <Button
           variant="ghost"
@@ -131,6 +148,35 @@ const Profile = () => {
     </div>
   );
 };
+
+const ProfileSkeleton = () => (
+  <>
+    <div className="mb-8 flex items-center">
+      <Skeleton className="w-20 h-20 rounded-full" />
+      <div className="ml-4 space-y-2">
+        <Skeleton className="h-6 w-32" />
+        <Skeleton className="h-4 w-48" />
+      </div>
+    </div>
+    
+    <div className="mb-8">
+      <Skeleton className="h-6 w-24 mb-4" />
+      <div className="grid grid-cols-3 gap-4">
+        <Skeleton className="h-24 rounded-lg" />
+        <Skeleton className="h-24 rounded-lg" />
+        <Skeleton className="h-24 rounded-lg" />
+      </div>
+    </div>
+    
+    <div className="mb-8">
+      <Skeleton className="h-6 w-24 mb-4" />
+      <Skeleton className="h-14 rounded-lg mb-2" />
+      <Skeleton className="h-14 rounded-lg mb-2" />
+      <Skeleton className="h-14 rounded-lg mb-2" />
+      <Skeleton className="h-14 rounded-lg" />
+    </div>
+  </>
+);
 
 const LoadingView = () => (
   <div className="min-h-screen flex items-center justify-center">

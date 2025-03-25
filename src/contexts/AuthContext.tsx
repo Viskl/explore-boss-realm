@@ -1,32 +1,76 @@
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Session, User } from '@supabase/supabase-js';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { Session, User } from '@supabase/supabase-js';
+import { useToast } from '@/hooks/use-toast';
 
-type AuthContextType = {
+interface AuthContextType {
   session: Session | null;
   user: User | null;
-  profile: any | null;
+  profile: UserProfile | null;
   isLoading: boolean;
-  signUp: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-};
+}
+
+interface UserProfile {
+  id: string;
+  username: string | null;
+  avatar_url: string | null;
+  level: number;
+  bosses_defeated: number;
+  rewards_earned: number;
+  created_at: string;
+  updated_at: string;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<any | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
-  // Fetch profile data
+  useEffect(() => {
+    // Check for active session on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    // Set up listener for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event);
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        } else {
+          setProfile(null);
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   const fetchProfile = async (userId: string) => {
     try {
+      setIsLoading(true);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -34,198 +78,139 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
-        console.error('Error fetching profile:', error);
-        return null;
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-      return null;
-    }
-  };
-
-  // Refresh profile data
-  const refreshProfile = async () => {
-    if (!user) return;
-    
-    const profile = await fetchProfile(user.id);
-    setProfile(profile);
-  };
-
-  // Sign up with email and password
-  const signUp = async (email: string, password: string) => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      
-      if (error) {
-        toast({
-          title: "Sign up failed",
-          description: error.message,
-          variant: "destructive",
-        });
         throw error;
       }
 
+      setProfile(data);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
       toast({
-        title: "Account created",
-        description: "Please check your email to confirm your account.",
+        title: 'Error',
+        description: 'Failed to fetch user profile.',
+        variant: 'destructive',
       });
-      
-      return data;
-    } catch (error: any) {
-      console.error('Error signing up:', error);
-      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Sign in with email and password
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchProfile(user.id);
+    }
+  };
+
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
       if (error) {
-        toast({
-          title: "Sign in failed",
-          description: error.message,
-          variant: "destructive",
-        });
         throw error;
       }
-
-      toast({
-        title: "Welcome back!",
-        description: "You have successfully signed in.",
-      });
-      
-      return data;
     } catch (error: any) {
       console.error('Error signing in:', error);
+      toast({
+        title: 'Sign in failed',
+        description: error.message || 'Failed to sign in. Please try again.',
+        variant: 'destructive',
+      });
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Sign in with Google
+  const signUp = async (email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: 'Account created',
+        description: 'Check your email for a confirmation link.',
+      });
+    } catch (error: any) {
+      console.error('Error signing up:', error);
+      toast({
+        title: 'Sign up failed',
+        description: error.message || 'Failed to create account. Please try again.',
+        variant: 'destructive',
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const signInWithGoogle = async () => {
     try {
       setIsLoading(true);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin + '/profile',
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
-      
+
       if (error) {
-        toast({
-          title: "Google sign in failed",
-          description: error.message,
-          variant: "destructive",
-        });
         throw error;
       }
     } catch (error: any) {
       console.error('Error signing in with Google:', error);
+      toast({
+        title: 'Google sign in failed',
+        description: error.message || 'Failed to sign in with Google. Please try again.',
+        variant: 'destructive',
+      });
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Sign out
   const signOut = async () => {
     try {
       setIsLoading(true);
       const { error } = await supabase.auth.signOut();
-      
       if (error) {
-        toast({
-          title: "Sign out failed",
-          description: error.message,
-          variant: "destructive",
-        });
         throw error;
       }
-
-      toast({
-        title: "Signed out",
-        description: "You have been signed out successfully.",
-      });
-      
-      setSession(null);
-      setUser(null);
-      setProfile(null);
     } catch (error: any) {
       console.error('Error signing out:', error);
-      throw error;
+      toast({
+        title: 'Sign out failed',
+        description: error.message || 'Failed to sign out. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Initialize auth state
-  useEffect(() => {
-    const initializeAuth = async () => {
-      setIsLoading(true);
-      
-      // First get the current session
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        const profile = await fetchProfile(session.user.id);
-        setProfile(profile);
-      }
-      
-      // Set up the auth state listener
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          console.log('Auth state changed:', event);
-          setSession(session);
-          setUser(session?.user ?? null);
-          
-          if (session?.user) {
-            const profile = await fetchProfile(session.user.id);
-            setProfile(profile);
-          } else {
-            setProfile(null);
-          }
-        }
-      );
-      
-      setIsLoading(false);
-      
-      // Clean up the subscription
-      return () => {
-        subscription.unsubscribe();
-      };
-    };
-    
-    initializeAuth();
-  }, []);
+  const value = {
+    session,
+    user,
+    profile,
+    isLoading,
+    signIn,
+    signUp,
+    signInWithGoogle,
+    signOut,
+    refreshProfile,
+  };
 
-  return (
-    <AuthContext.Provider value={{
-      session,
-      user,
-      profile,
-      isLoading,
-      signUp,
-      signIn,
-      signInWithGoogle,
-      signOut,
-      refreshProfile,
-    }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

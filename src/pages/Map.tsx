@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { ArrowUp, Compass, List, Filter, RefreshCw, MapPin, X } from "lucide-react";
+import { ArrowUp, Compass, List, Filter, RefreshCw, MapPin, X, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BossCard from "@/components/BossCard";
 import { useNavigate } from "react-router-dom";
@@ -154,7 +154,7 @@ const Map = () => {
               />
               
               {/* Map controls */}
-              <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
+              <div className="absolute top-4 right-4 flex flex-col gap-2 z-30">
                 <Button
                   variant="outline"
                   size="icon"
@@ -174,15 +174,29 @@ const Map = () => {
                   <RefreshCw className="h-5 w-5 text-primary" />
                 </Button>
                 
-                {/* Make this button more prominent */}
+                {/* Location button */}
                 <Button
                   variant="default"
                   size="icon"
                   className="bg-primary rounded-full shadow-md h-12 w-12 ring-2 ring-white"
+                  onClick={() => {
+                    const el = document.querySelector('.mapboxgl-ctrl-geolocate') as HTMLElement;
+                    if (el) el.click();
+                  }}
+                  title="Center on My Location"
+                >
+                  <Navigation className="h-5 w-5 text-primary-foreground" />
+                </Button>
+                
+                {/* Make this button more prominent */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="bg-white rounded-full shadow-md h-12 w-12"
                   onClick={openTokenDialog}
                   title="Set Mapbox Token"
                 >
-                  <MapPin className="h-5 w-5 text-primary-foreground" />
+                  <MapPin className="h-5 w-5 text-primary" />
                 </Button>
                 
                 {mapboxToken && (
@@ -200,7 +214,7 @@ const Map = () => {
               
               {/* Token notice */}
               {!mapboxToken && (
-                <div className="absolute bottom-4 left-4 right-4 mx-auto max-w-md bg-background/90 p-4 rounded-lg shadow-lg border border-border z-10">
+                <div className="absolute bottom-4 left-4 right-4 mx-auto max-w-md bg-background/90 p-4 rounded-lg shadow-lg border border-border z-30">
                   <p className="text-sm font-medium mb-2">Map not loading correctly?</p>
                   <p className="text-xs text-muted-foreground mb-3">You might need to provide your own Mapbox token.</p>
                   <Button 
@@ -258,7 +272,7 @@ const Map = () => {
       {viewMode === "map" && (
         <button
           className="fixed bottom-20 right-4 w-12 h-12 rounded-full bg-primary text-primary-foreground
-                   flex items-center justify-center shadow-lg z-10"
+                   flex items-center justify-center shadow-lg z-30"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         >
           <ArrowUp size={20} />

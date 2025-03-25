@@ -6,8 +6,9 @@ import { useNavigate } from "react-router-dom";
 import BossCard from "./BossCard";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, MapPin } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import LocationPermissionPrompt from "./LocationPermissionPrompt";
 
 interface MapboxMapProps {
   bosses: any[];
@@ -26,9 +27,12 @@ const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoiYWxleC1sb3ZhYmxlIiwiYSI6ImNsb2c2MmdpajB
 const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex, customMapboxToken }: MapboxMapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
+  const geolocateControl = useRef<mapboxgl.GeolocateControl | null>(null);
   const navigate = useNavigate();
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [isPermissionPromptOpen, setIsPermissionPromptOpen] = useState(false);
+  const [locationPermissionState, setLocationPermissionState] = useState<'unknown' | 'granted' | 'denied'>('unknown');
   const { toast } = useToast();
 
   // Clean up function to remove map instance
@@ -39,6 +43,17 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex, customMapboxToken 
       map.current = null;
     }
   };
+
+  // Show permission prompt after a short delay
+  useEffect(() => {
+    if (mapLoaded && locationPermissionState === 'unknown') {
+      const timer = setTimeout(() => {
+        setIsPermissionPromptOpen(true);
+      }, 1500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [mapLoaded, locationPermissionState]);
 
   useEffect(() => {
     // Don't initialize if already initialized or container not available
@@ -63,7 +78,7 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex, customMapboxToken 
       map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
       
       // Add geolocate control
-      const geolocateControl = new mapboxgl.GeolocateControl({
+      geolocateControl.current = new mapboxgl.GeolocateControl({
         positionOptions: {
           enableHighAccuracy: true
         },
@@ -71,7 +86,7 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex, customMapboxToken 
         showUserHeading: true
       });
       
-      map.current.addControl(geolocateControl);
+      map.current.addControl(geolocateControl.current);
       
       // When map is loaded
       map.current.on('load', () => {
@@ -118,12 +133,22 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex, customMapboxToken 
               .addTo(map.current);
           }
         });
-        
-        // Try to trigger the geolocate control
-        setTimeout(() => {
-          geolocateControl.trigger();
-        }, 1000);
       });
+      
+      // Listen for geolocate events to update permission state
+      if (geolocateControl.current) {
+        geolocateControl.current.on('geolocate', () => {
+          console.log('Location found and tracking');
+          setLocationPermissionState('granted');
+        });
+        
+        geolocateControl.current.on('error', (e) => {
+          console.error('Geolocate error:', e);
+          if (e.error?.code === 1) { // Permission denied
+            setLocationPermissionState('denied');
+          }
+        });
+      }
       
       // Handle map errors
       map.current.on('error', (e) => {
@@ -152,6 +177,29 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex, customMapboxToken 
     return cleanUpMap;
   }, [bosses, navigate, toast, customMapboxToken]);
 
+  const handleLocationAllow = () => {
+    console.log("Location permission allowed by user");
+    setLocationPermissionState('granted');
+    setIsPermissionPromptOpen(false);
+    
+    // Trigger the geolocate control
+    if (geolocateControl.current && map.current) {
+      geolocateControl.current.trigger();
+    }
+  };
+
+  const handleLocationDeny = () => {
+    console.log("Location permission denied by user");
+    setLocationPermissionState('denied');
+    setIsPermissionPromptOpen(false);
+    
+    toast({
+      title: 'Location Access Denied',
+      description: 'You can still explore the map, but your current location won\'t be shown.',
+      variant: 'default'
+    });
+  };
+
   if (mapError) {
     return (
       <div className="h-full w-full flex flex-col items-center justify-center p-4">
@@ -173,6 +221,35 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex, customMapboxToken 
     <div className="relative h-full w-full">
       {/* Map container */}
       <div ref={mapContainer} className="h-full w-full" />
+      
+      {/* Location permission dialog */}
+      <LocationPermissionPrompt
+        open={isPermissionPromptOpen}
+        onOpenChange={setIsPermissionPromptOpen}
+        onAllow={handleLocationAllow}
+        onDeny={handleLocationDeny}
+      />
+      
+      {/* Location info banner when denied */}
+      {locationPermissionState === 'denied' && mapLoaded && (
+        <div className="absolute top-4 left-4 right-4 mx-auto max-w-sm bg-background/95 border border-border rounded-lg shadow-lg p-3 z-20">
+          <div className="flex items-start gap-2">
+            <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium">Location access is disabled</p>
+              <p className="text-xs text-muted-foreground">Enable location services to see your position on the map</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-2 w-full"
+                onClick={() => setIsPermissionPromptOpen(true)}
+              >
+                Enable Location
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Bottom info panel with carousel */}
       {mapLoaded && (

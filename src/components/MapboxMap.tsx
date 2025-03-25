@@ -5,8 +5,6 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { useNavigate } from "react-router-dom";
 import BossCard from "./BossCard";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -22,7 +20,7 @@ interface MapboxMapProps {
 const RZESZOW_LNG = 22.0047;
 const RZESZOW_LAT = 50.0412;
 
-// Default Mapbox token - likely to fail based on console logs
+// Default Mapbox token
 const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoiYWxleC1sb3ZhYmxlIiwiYSI6ImNsb2c2MmdpajBnOXUya3BiYmQ5OXpobDIifQ.Nmh-GJyh1C6KDjDoMHi4Yw';
 
 const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex, customMapboxToken }: MapboxMapProps) => {
@@ -33,10 +31,22 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex, customMapboxToken 
   const [mapError, setMapError] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // Clean up function to remove map instance
+  const cleanUpMap = () => {
+    if (map.current) {
+      console.log("Cleaning up map instance");
+      map.current.remove();
+      map.current = null;
+    }
+  };
+
   useEffect(() => {
+    // Don't initialize if already initialized or container not available
     if (!mapContainer.current || map.current) return;
     
     try {
+      console.log("Initializing map with token:", customMapboxToken ? "Custom token" : "Default token");
+      
       // Use custom token if provided, otherwise use default
       const token = customMapboxToken || DEFAULT_MAPBOX_TOKEN;
       mapboxgl.accessToken = token;
@@ -65,9 +75,9 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex, customMapboxToken 
       
       // When map is loaded
       map.current.on('load', () => {
+        console.log('Map loaded successfully!');
         setMapLoaded(true);
         setMapError(null);
-        console.log('Map loaded successfully!');
         
         // Add markers for bosses around Rzeszow
         bosses.forEach((boss) => {
@@ -79,11 +89,22 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex, customMapboxToken 
           
           // Create marker element
           const el = document.createElement('div');
-          el.className = `boss-marker-element ${boss.difficulty}`;
-          el.innerHTML = `<div class="w-5 h-5 rounded-full bg-${
-            boss.difficulty === "rare" ? "blue" : 
-            boss.difficulty === "epic" ? "purple" : "amber"
-          }-500 z-10 border-2 border-white"></div>`;
+          el.className = `boss-marker ${boss.difficulty}`;
+          
+          // Set marker style
+          el.style.width = '20px';
+          el.style.height = '20px';
+          el.style.borderRadius = '50%';
+          el.style.border = '2px solid white';
+          
+          // Set color based on difficulty
+          if (boss.difficulty === "rare") {
+            el.style.backgroundColor = '#3b82f6'; // blue-500
+          } else if (boss.difficulty === "epic") {
+            el.style.backgroundColor = '#8b5cf6'; // purple-500
+          } else {
+            el.style.backgroundColor = '#f59e0b'; // amber-500
+          }
           
           // Add click event
           el.addEventListener('click', () => {
@@ -91,9 +112,11 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex, customMapboxToken 
           });
           
           // Add marker to map
-          new mapboxgl.Marker(el)
-            .setLngLat([longitude, latitude])
-            .addTo(map.current!);
+          if (map.current) {
+            new mapboxgl.Marker(el)
+              .setLngLat([longitude, latitude])
+              .addTo(map.current);
+          }
         });
         
         // Try to trigger the geolocate control
@@ -116,21 +139,17 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex, customMapboxToken 
       
     } catch (error: any) {
       console.error('Error initializing map:', error);
-      setMapError(error?.message || 'Failed to initialize the map. Please check your connection.');
+      const errorMsg = error?.message || 'Failed to initialize the map. Please check your connection.';
+      setMapError(errorMsg);
       toast({
         title: 'Map Error',
-        description: 'Failed to initialize the map. Please check your connection.',
+        description: errorMsg,
         variant: 'destructive'
       });
     }
     
     // Cleanup
-    return () => {
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-      }
-    };
+    return cleanUpMap;
   }, [bosses, navigate, toast, customMapboxToken]);
 
   if (mapError) {
@@ -140,7 +159,7 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex, customMapboxToken 
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Map Error</AlertTitle>
           <AlertDescription>
-            There was an error loading the map. Please refresh the page.
+            {mapError}
           </AlertDescription>
         </Alert>
         <p className="text-sm text-muted-foreground mb-2">

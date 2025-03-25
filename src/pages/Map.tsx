@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { ArrowUp, Compass, List, Filter, RefreshCw, MapPin, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -67,6 +68,7 @@ const Map = () => {
     return localStorage.getItem('mapbox_token') || undefined;
   });
   const [isTokenDialogOpen, setIsTokenDialogOpen] = useState(false);
+  const [tokenInputValue, setTokenInputValue] = useState('');
   const { toast } = useToast();
   
   useEffect(() => {
@@ -75,8 +77,13 @@ const Map = () => {
       setIsLoading(false);
     }, 1000);
     
+    // Initialize token input value
+    if (mapboxToken) {
+      setTokenInputValue(mapboxToken);
+    }
+    
     return () => clearTimeout(timer);
-  }, []);
+  }, [mapboxToken]);
   
   const handleSlideChange = (index: number) => {
     setActiveSlideIndex(index);
@@ -90,26 +97,34 @@ const Map = () => {
     setMapKey(prev => prev + 1); // Force component remount
   };
 
-  const saveMapboxToken = (token: string) => {
-    if (token.trim()) {
-      localStorage.setItem('mapbox_token', token);
-      setMapboxToken(token);
+  const saveMapboxToken = () => {
+    if (tokenInputValue.trim()) {
+      localStorage.setItem('mapbox_token', tokenInputValue);
+      setMapboxToken(tokenInputValue);
       setIsTokenDialogOpen(false);
       setMapKey(prev => prev + 1); // Force map reload with new token
       toast({
         title: "Token Saved",
         description: "Your Mapbox token has been saved and will be used for map views.",
       });
+    } else {
+      toast({
+        title: "Token Required",
+        description: "Please enter a valid Mapbox token.",
+        variant: "destructive"
+      });
     }
   };
 
   const openTokenDialog = () => {
+    setTokenInputValue(mapboxToken || '');
     setIsTokenDialogOpen(true);
   };
   
   const clearMapboxToken = () => {
     localStorage.removeItem('mapbox_token');
     setMapboxToken(undefined);
+    setTokenInputValue('');
     setMapKey(prev => prev + 1); // Force map reload with default token
     toast({
       title: "Token Removed",
@@ -139,7 +154,7 @@ const Map = () => {
               />
               
               {/* Map controls */}
-              <div className="absolute top-4 right-4 flex flex-col gap-2">
+              <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
                 <Button
                   variant="outline"
                   size="icon"
@@ -185,7 +200,7 @@ const Map = () => {
               
               {/* Token notice */}
               {!mapboxToken && (
-                <div className="absolute bottom-4 left-4 right-4 mx-auto max-w-md bg-background/90 p-4 rounded-lg shadow-lg border border-border">
+                <div className="absolute bottom-4 left-4 right-4 mx-auto max-w-md bg-background/90 p-4 rounded-lg shadow-lg border border-border z-10">
                   <p className="text-sm font-medium mb-2">Map not loading correctly?</p>
                   <p className="text-xs text-muted-foreground mb-3">You might need to provide your own Mapbox token.</p>
                   <Button 
@@ -266,8 +281,8 @@ const Map = () => {
               <Input 
                 id="mapbox-token" 
                 placeholder="pk.eyJ1..." 
-                defaultValue={mapboxToken || ''}
-                onChange={(e) => setMapboxToken(e.target.value)}
+                value={tokenInputValue}
+                onChange={(e) => setTokenInputValue(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
                 Use your public token (starts with 'pk.'). Never share your secret token.
@@ -296,7 +311,7 @@ const Map = () => {
             </Button>
             <Button 
               type="button" 
-              onClick={() => saveMapboxToken(mapboxToken || '')}
+              onClick={saveMapboxToken}
             >
               Save Token
             </Button>

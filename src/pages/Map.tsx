@@ -1,21 +1,11 @@
 
 import { useState, useEffect } from "react";
-import { ArrowUp, Compass, List, Filter, RefreshCw, MapPin, X, Navigation } from "lucide-react";
+import { ArrowUp, Compass, List, Target, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import HotspotMarker from "@/components/HotspotMarker";
 import BossCard from "@/components/BossCard";
 import { useNavigate } from "react-router-dom";
-import MapboxMap from "@/components/MapboxMap";
-import { useToast } from "@/components/ui/use-toast";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog";
 
 // Mock data for bosses with proper typing
 const BOSSES = [
@@ -61,15 +51,8 @@ const Map = () => {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<"map" | "list">("map");
   const [isLoading, setIsLoading] = useState(true);
+  const [isLocating, setIsLocating] = useState(false);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
-  const [mapKey, setMapKey] = useState(0);
-  const [mapboxToken, setMapboxToken] = useState<string | undefined>(() => {
-    // Try to get token from localStorage
-    return localStorage.getItem('mapbox_token') || undefined;
-  });
-  const [isTokenDialogOpen, setIsTokenDialogOpen] = useState(false);
-  const [tokenInputValue, setTokenInputValue] = useState('');
-  const { toast } = useToast();
   
   useEffect(() => {
     // Simulate loading the map
@@ -77,66 +60,26 @@ const Map = () => {
       setIsLoading(false);
     }, 1000);
     
-    // Initialize token input value
-    if (mapboxToken) {
-      setTokenInputValue(mapboxToken);
-    }
-    
     return () => clearTimeout(timer);
-  }, [mapboxToken]);
+  }, []);
   
+  const handleLocateMe = () => {
+    setIsLocating(true);
+    // Simulate getting user location
+    setTimeout(() => {
+      setIsLocating(false);
+    }, 1500);
+  };
+
   const handleSlideChange = (index: number) => {
     setActiveSlideIndex(index);
-  };
-
-  const resetMap = () => {
-    toast({
-      title: "Map Reset",
-      description: "Reloading map...",
-    });
-    setMapKey(prev => prev + 1); // Force component remount
-  };
-
-  const saveMapboxToken = () => {
-    if (tokenInputValue.trim()) {
-      localStorage.setItem('mapbox_token', tokenInputValue);
-      setMapboxToken(tokenInputValue);
-      setIsTokenDialogOpen(false);
-      setMapKey(prev => prev + 1); // Force map reload with new token
-      toast({
-        title: "Token Saved",
-        description: "Your Mapbox token has been saved and will be used for map views.",
-      });
-    } else {
-      toast({
-        title: "Token Required",
-        description: "Please enter a valid Mapbox token.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const openTokenDialog = () => {
-    setTokenInputValue(mapboxToken || '');
-    setIsTokenDialogOpen(true);
-  };
-  
-  const clearMapboxToken = () => {
-    localStorage.removeItem('mapbox_token');
-    setMapboxToken(undefined);
-    setTokenInputValue('');
-    setMapKey(prev => prev + 1); // Force map reload with default token
-    toast({
-      title: "Token Removed",
-      description: "Using default Mapbox token now.",
-    });
   };
   
   return (
     <div className="relative h-full w-full">
       {/* Map View */}
       {viewMode === "map" && (
-        <div className="relative h-full w-full overflow-hidden">
+        <div className="relative h-full w-full bg-muted/30 overflow-hidden">
           {isLoading ? (
             <div className="h-full w-full flex flex-col items-center justify-center">
               <div className="w-10 h-10 border-4 border-muted-foreground/20 border-t-primary rounded-full animate-spin mb-4" />
@@ -144,17 +87,47 @@ const Map = () => {
             </div>
           ) : (
             <>
-              {/* Mapbox Map Component */}
-              <MapboxMap 
-                key={`map-${mapKey}`} // Force remount when key changes
-                bosses={BOSSES} 
-                onSlideChange={handleSlideChange}
-                activeSlideIndex={activeSlideIndex}
-                customMapboxToken={mapboxToken}
-              />
+              {/* Map background with proper background and borders */}
+              <div className="h-full w-full bg-[url('https://images.unsplash.com/photo-1599930113854-d6d7fd522507?q=80&w=2274&auto=format&fit=crop')] bg-cover bg-center rounded-none border-none">
+                {/* Boss markers with tooltip-style labels */}
+                {BOSSES.map((boss) => (
+                  <HotspotMarker
+                    key={boss.id}
+                    id={boss.id}
+                    position={boss.position}
+                    difficulty={boss.difficulty}
+                    name={boss.name}
+                    distance={boss.distance}
+                  />
+                ))}
+                
+                {/* Current location marker */}
+                <div className="absolute bottom-1/2 left-1/2 transform -translate-x-1/2 translate-y-1/2">
+                  <div className="relative">
+                    <div className="w-6 h-6 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-white" />
+                    </div>
+                    <div className="absolute top-0 left-0 right-0 bottom-0 rounded-full bg-blue-500/20 animate-ping" />
+                  </div>
+                </div>
+              </div>
               
-              {/* Map controls */}
-              <div className="absolute top-4 right-4 flex flex-col gap-2 z-30">
+              {/* Map controls - redesigned as shown in the image */}
+              <div className="absolute top-4 right-4 flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="bg-white rounded-full shadow-md h-12 w-12"
+                  onClick={handleLocateMe}
+                  disabled={isLocating}
+                >
+                  {isLocating ? (
+                    <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Target className="h-5 w-5 text-primary" />
+                  )}
+                </Button>
+                
                 <Button
                   variant="outline"
                   size="icon"
@@ -163,70 +136,44 @@ const Map = () => {
                 >
                   <List className="h-5 w-5 text-primary" />
                 </Button>
-                
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="bg-white rounded-full shadow-md h-12 w-12"
-                  onClick={resetMap}
-                  title="Reset Map"
-                >
-                  <RefreshCw className="h-5 w-5 text-primary" />
-                </Button>
-                
-                {/* Location button */}
-                <Button
-                  variant="default"
-                  size="icon"
-                  className="bg-primary rounded-full shadow-md h-12 w-12 ring-2 ring-white"
-                  onClick={() => {
-                    const el = document.querySelector('.mapboxgl-ctrl-geolocate') as HTMLElement;
-                    if (el) el.click();
-                  }}
-                  title="Center on My Location"
-                >
-                  <Navigation className="h-5 w-5 text-primary-foreground" />
-                </Button>
-                
-                {/* Make this button more prominent */}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="bg-white rounded-full shadow-md h-12 w-12"
-                  onClick={openTokenDialog}
-                  title="Set Mapbox Token"
-                >
-                  <MapPin className="h-5 w-5 text-primary" />
-                </Button>
-                
-                {mapboxToken && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="bg-white rounded-full shadow-md h-12 w-12"
-                    onClick={clearMapboxToken}
-                    title="Clear Custom Token"
-                  >
-                    <X className="h-5 w-5 text-destructive" />
-                  </Button>
-                )}
               </div>
               
-              {/* Token notice */}
-              {!mapboxToken && (
-                <div className="absolute bottom-4 left-4 right-4 mx-auto max-w-md bg-background/90 p-4 rounded-lg shadow-lg border border-border z-30">
-                  <p className="text-sm font-medium mb-2">Map not loading correctly?</p>
-                  <p className="text-xs text-muted-foreground mb-3">You might need to provide your own Mapbox token.</p>
-                  <Button 
-                    size="sm" 
-                    onClick={openTokenDialog}
-                    className="w-full"
-                  >
-                    <MapPin className="mr-2 h-4 w-4" />
-                    Set Mapbox Token
-                  </Button>
+              {/* Bottom info panel with carousel */}
+              <div className="absolute bottom-20 left-0 right-0 px-4">
+                <div className="flex items-center justify-between mb-3 px-2">
+                  <h2 className="font-bold text-lg text-white drop-shadow-md">Nearby Bosses</h2>
+                  <span className="text-sm text-white/90 drop-shadow-md">{BOSSES.length} found</span>
                 </div>
-              )}
+                
+                <div className="relative">
+                  <div className="flex gap-4 overflow-x-auto pb-4 snap-x hide-scrollbar">
+                    {BOSSES.map((boss, index) => (
+                      <div 
+                        key={boss.id} 
+                        className="min-w-[300px] snap-center first:ml-2 last:mr-2"
+                        onClick={() => handleSlideChange(index)}
+                      >
+                        <div className={`transition-all duration-200 ${activeSlideIndex === index ? 'scale-100' : 'scale-95 opacity-80'}`}>
+                          <BossCard {...boss} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Pagination indicators */}
+                  <div className="flex justify-center gap-1.5 mt-2">
+                    {BOSSES.map((_, index) => (
+                      <button
+                        key={index}
+                        className={`w-8 h-1.5 rounded-full transition-all duration-300 ${
+                          activeSlideIndex === index ? 'bg-white' : 'bg-white/40'
+                        }`}
+                        onClick={() => handleSlideChange(index)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
             </>
           )}
         </div>
@@ -272,66 +219,12 @@ const Map = () => {
       {viewMode === "map" && (
         <button
           className="fixed bottom-20 right-4 w-12 h-12 rounded-full bg-primary text-primary-foreground
-                   flex items-center justify-center shadow-lg z-30"
+                   flex items-center justify-center shadow-lg z-10"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         >
           <ArrowUp size={20} />
         </button>
       )}
-
-      {/* Mapbox Token Dialog - Make it more user-friendly */}
-      <Dialog open={isTokenDialogOpen} onOpenChange={setIsTokenDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Enter Mapbox Token</DialogTitle>
-            <DialogDescription>
-              To use Mapbox features, you need to provide your own access token.
-              You can get one by signing up at <a href="https://www.mapbox.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline">mapbox.com</a>
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="mapbox-token">Public Access Token</Label>
-              <Input 
-                id="mapbox-token" 
-                placeholder="pk.eyJ1..." 
-                value={tokenInputValue}
-                onChange={(e) => setTokenInputValue(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Use your public token (starts with 'pk.'). Never share your secret token.
-              </p>
-            </div>
-            
-            {/* Add steps to get token */}
-            <div className="space-y-2 border-t pt-4">
-              <p className="text-sm font-medium">How to get a Mapbox token:</p>
-              <ol className="text-xs text-muted-foreground space-y-1 pl-4 list-decimal">
-                <li>Create an account at <a href="https://www.mapbox.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline">mapbox.com</a></li>
-                <li>Go to your account dashboard</li>
-                <li>Navigate to "Access tokens"</li>
-                <li>Copy your default public token or create a new one</li>
-                <li>Paste it above</li>
-              </ol>
-            </div>
-          </div>
-          <DialogFooter className="sm:justify-between">
-            <Button 
-              type="button" 
-              variant="secondary" 
-              onClick={() => setIsTokenDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="button" 
-              onClick={saveMapboxToken}
-            >
-              Save Token
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

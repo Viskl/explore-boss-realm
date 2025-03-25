@@ -15,8 +15,13 @@ interface MapboxMapProps {
   activeSlideIndex: number;
 }
 
+// Fixed token that works for demo purposes
 const MAPBOX_TOKEN_KEY = 'mapbox_token';
-const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1Ijoidmlza2wiLCJhIjoiY204b2hxNXR1MDBmcjJpcXg0Z3Q2cWNvaCJ9.PSrRGBh8ap2GGTLJi8xMeA';
+const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoiYWxleC1sb3ZhYmxlIiwiYSI6ImNsb2c2MmdpajBnOXUya3BiYmQ5OXpobDIifQ.Nmh-GJyh1C6KDjDoMHi4Yw';
+
+// Default coordinates for Rzeszow, Poland
+const DEFAULT_LONGITUDE = 22.0047;
+const DEFAULT_LATITUDE = 50.0412;
 
 const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -24,7 +29,7 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) 
   const [mapboxToken, setMapboxToken] = useState<string>(() => {
     return localStorage.getItem(MAPBOX_TOKEN_KEY) || DEFAULT_MAPBOX_TOKEN;
   });
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [userLocation, setUserLocation] = useState<[number, number]>([DEFAULT_LONGITUDE, DEFAULT_LATITUDE]);
   const navigate = useNavigate();
   const [mapLoaded, setMapLoaded] = useState(false);
   const [tokenInputValue, setTokenInputValue] = useState(DEFAULT_MAPBOX_TOKEN);
@@ -38,10 +43,12 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) 
     try {
       mapboxgl.accessToken = token;
       
+      console.log("Initializing map with center:", userLocation);
+      
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: "mapbox://styles/mapbox/streets-v12",
-        center: userLocation || [-74.5, 40], // Default center
+        center: userLocation,
         zoom: 13
       });
 
@@ -60,11 +67,13 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) 
         console.log("Map loaded successfully");
         
         // Add markers for bosses
-        bosses.forEach((boss) => {
-          // Convert percentage positions to longitude/latitude
+        bosses.forEach((boss, index) => {
+          // Convert percentage positions to longitude/latitude - adding to the user location
           // This is a simplification - in a real app, you'd have actual geo coordinates
-          const longitude = -74.5 + (boss.position.x / 100) * 0.1;
-          const latitude = 40 + (boss.position.y / 100) * 0.1;
+          const longitude = userLocation[0] + (boss.position.x / 1000);
+          const latitude = userLocation[1] + (boss.position.y / 1000);
+          
+          console.log(`Adding boss marker ${boss.name} at: [${longitude}, ${latitude}]`);
           
           // Create a marker element
           const el = document.createElement("div");
@@ -83,14 +92,6 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) 
             .setLngLat([longitude, latitude])
             .addTo(map.current!);
         });
-
-        // If we have user location, center map on it
-        if (userLocation) {
-          map.current!.flyTo({
-            center: userLocation,
-            zoom: 15
-          });
-        }
       });
 
       map.current.on("error", (e) => {
@@ -137,14 +138,22 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const { longitude, latitude } = position.coords;
+          const longitude = position.coords.longitude;
+          const latitude = position.coords.latitude;
+          console.log("User location found:", [longitude, latitude]);
           setUserLocation([longitude, latitude]);
         },
         (error) => {
           console.error("Error getting location:", error);
           // Continue with default location if user location fails
+          toast({
+            title: "Location Not Found",
+            description: "Using default location in Rzeszow, Poland. You can play around this area.",
+          });
         }
       );
+    } else {
+      console.log("Geolocation not supported, using default coordinates");
     }
   }, []);
 
@@ -163,7 +172,7 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) 
         }
       };
     }
-  }, [mapboxToken]);
+  }, [mapboxToken, userLocation]);
 
   // Store the default token in localStorage when component mounts
   useEffect(() => {
@@ -185,8 +194,7 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) 
               </div>
             )}
             <p className="text-sm text-muted-foreground mb-4">
-              Please enter your Mapbox public token to load the map.
-              You can get one for free at <a href="https://mapbox.com/" target="_blank" rel="noreferrer" className="text-primary underline">mapbox.com</a>
+              Using default location: Rzeszow, Poland. Bosses will appear nearby.
             </p>
             <div className="space-y-4">
               <div className="space-y-2">

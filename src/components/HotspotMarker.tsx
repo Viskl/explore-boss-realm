@@ -23,7 +23,7 @@ const HotspotMarker = ({ id, position, difficulty, name, distance }: HotspotMark
   
   return (
     <div 
-      className="boss-marker group cursor-pointer"
+      className="boss-marker group cursor-pointer absolute"
       style={{ left: `${position.x}%`, top: `${position.y}%` }}
       onClick={() => navigate(`/boss/${id}`)}
       onMouseEnter={() => setIsHovered(true)}
@@ -35,7 +35,7 @@ const HotspotMarker = ({ id, position, difficulty, name, distance }: HotspotMark
       </div>
       
       {/* Tooltip label */}
-      {(isHovered || true) && (
+      {isHovered && (
         <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 
                       bg-black/80 text-white px-3 py-1.5 rounded-lg text-sm
                       whitespace-nowrap z-20 shadow-md min-w-[120px] text-center">

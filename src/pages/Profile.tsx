@@ -1,27 +1,63 @@
+
 import { useState, useEffect } from "react";
 import { User, Medal, Settings, LogOut, ChevronRight, Edit, Camera } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Button from "@/components/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { user, profile, signOut, isLoading } = useAuth();
   const { toast } = useToast();
+  const [profileLoading, setProfileLoading] = useState(true);
   
   useEffect(() => {
-    if (!isLoading && !user) {
-      navigate("/auth");
+    // Set a timeout to prevent an infinite loading state
+    const timer = setTimeout(() => {
+      setProfileLoading(false);
+    }, 5000);
+    
+    if (!isLoading) {
+      setProfileLoading(false);
+      clearTimeout(timer);
+      
+      if (!user) {
+        navigate("/auth");
+      }
     }
+    
+    return () => clearTimeout(timer);
   }, [user, isLoading, navigate]);
   
-  if (isLoading) {
+  if (isLoading || profileLoading) {
     return <LoadingView />;
   }
   
-  if (!user || !profile) {
+  if (!user) {
     return null; // Will redirect to auth due to useEffect
+  }
+  
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-background px-6 py-8">
+        <h2 className="text-xl font-bold text-center">Profile Not Found</h2>
+        <p className="text-muted-foreground text-center mt-2">
+          There was an issue loading your profile. Please try signing out and back in.
+        </p>
+        <div className="mt-8 flex justify-center">
+          <Button
+            variant="ghost"
+            className="text-red-500 hover:text-red-600 hover:bg-red-50"
+            leftIcon={<LogOut size={16} />}
+            onClick={handleSignOut}
+          >
+            Sign Out
+          </Button>
+        </div>
+      </div>
+    );
   }
   
   const handleSignOut = async () => {
@@ -133,8 +169,39 @@ const Profile = () => {
 };
 
 const LoadingView = () => (
-  <div className="min-h-screen flex items-center justify-center">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  <div className="min-h-screen bg-background px-6 py-8 max-w-lg mx-auto">
+    <header className="mb-8">
+      <Skeleton className="h-8 w-40 mb-2" />
+      <Skeleton className="h-4 w-60" />
+    </header>
+    
+    <div className="mb-8 flex items-center">
+      <Skeleton className="w-20 h-20 rounded-full" />
+      <div className="ml-4 space-y-2">
+        <Skeleton className="h-6 w-32" />
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-4 w-24" />
+      </div>
+    </div>
+    
+    <section className="mb-8">
+      <Skeleton className="h-6 w-24 mb-4" />
+      <div className="grid grid-cols-3 gap-4">
+        <Skeleton className="h-24 rounded-lg" />
+        <Skeleton className="h-24 rounded-lg" />
+        <Skeleton className="h-24 rounded-lg" />
+      </div>
+    </section>
+    
+    <section className="mb-8">
+      <Skeleton className="h-6 w-24 mb-4" />
+      <Skeleton className="h-14 rounded-lg mb-2" />
+      <Skeleton className="h-14 rounded-lg mb-2" />
+      <Skeleton className="h-14 rounded-lg mb-2" />
+      <Skeleton className="h-14 rounded-lg" />
+    </section>
+    
+    <Skeleton className="h-10 w-full rounded-lg" />
   </div>
 );
 

@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useNavigate } from "react-router-dom";
-import HotspotMarker from "./HotspotMarker";
 import BossCard from "./BossCard";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface MapboxMapProps {
   bosses: any[];
@@ -12,13 +14,18 @@ interface MapboxMapProps {
   activeSlideIndex: number;
 }
 
+const MAPBOX_TOKEN_KEY = 'mapbox_token';
+
 const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const [mapboxToken, setMapboxToken] = useState<string>("");
+  const [mapboxToken, setMapboxToken] = useState<string>(() => {
+    return localStorage.getItem(MAPBOX_TOKEN_KEY) || "";
+  });
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const navigate = useNavigate();
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [tokenInputValue, setTokenInputValue] = useState("");
 
   // Function to load the map
   const initializeMap = (token: string) => {
@@ -80,6 +87,18 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) 
     });
   };
 
+  const saveAndInitializeMap = () => {
+    if (tokenInputValue) {
+      localStorage.setItem(MAPBOX_TOKEN_KEY, tokenInputValue);
+      setMapboxToken(tokenInputValue);
+      
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        initializeMap(tokenInputValue);
+      }, 100);
+    }
+  };
+
   useEffect(() => {
     // Get user location
     if (navigator.geolocation) {
@@ -113,27 +132,33 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) 
       {/* Mapbox token input if not set */}
       {!mapboxToken && (
         <div className="absolute inset-0 bg-background/95 z-50 flex flex-col items-center justify-center p-6">
-          <h2 className="text-xl font-bold mb-4">Enter Mapbox API Token</h2>
-          <p className="text-sm text-muted-foreground mb-4 text-center max-w-md">
-            Please enter your Mapbox public token to load the map.
-            You can get one for free at <a href="https://mapbox.com/" target="_blank" rel="noreferrer" className="text-primary underline">mapbox.com</a>
-          </p>
-          <input
-            type="text"
-            className="w-full max-w-md px-4 py-2 mb-4 border rounded-md"
-            placeholder="pk.eyJ1IjoieW91cnVzZXJuYW1lIiwiYSI6..."
-            onChange={(e) => setMapboxToken(e.target.value)}
-          />
-          <button
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
-            onClick={() => {
-              if (mapboxToken) {
-                initializeMap(mapboxToken);
-              }
-            }}
-          >
-            Load Map
-          </button>
+          <div className="bg-card w-full max-w-md p-6 rounded-lg shadow-lg border border-border">
+            <h2 className="text-xl font-bold mb-4">Enter Mapbox API Token</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Please enter your Mapbox public token to load the map.
+              You can get one for free at <a href="https://mapbox.com/" target="_blank" rel="noreferrer" className="text-primary underline">mapbox.com</a>
+            </p>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="mapbox-token">Mapbox Token</Label>
+                <Input
+                  id="mapbox-token"
+                  type="text"
+                  className="w-full"
+                  placeholder="pk.eyJ1IjoieW91cnVzZXJuYW1lIiwiYSI6..."
+                  value={tokenInputValue}
+                  onChange={(e) => setTokenInputValue(e.target.value)}
+                />
+              </div>
+              <Button
+                className="w-full"
+                onClick={saveAndInitializeMap}
+                disabled={!tokenInputValue}
+              >
+                Load Map
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { ArrowUp, Compass, List, Filter, RefreshCw, MapPin, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -149,6 +148,7 @@ const Map = () => {
                 >
                   <List className="h-5 w-5 text-primary" />
                 </Button>
+                
                 <Button
                   variant="outline"
                   size="icon"
@@ -158,15 +158,18 @@ const Map = () => {
                 >
                   <RefreshCw className="h-5 w-5 text-primary" />
                 </Button>
+                
+                {/* Make this button more prominent */}
                 <Button
-                  variant="outline"
+                  variant="default"
                   size="icon"
-                  className="bg-white rounded-full shadow-md h-12 w-12"
+                  className="bg-primary rounded-full shadow-md h-12 w-12 ring-2 ring-white"
                   onClick={openTokenDialog}
                   title="Set Mapbox Token"
                 >
-                  <MapPin className="h-5 w-5 text-primary" />
+                  <MapPin className="h-5 w-5 text-primary-foreground" />
                 </Button>
+                
                 {mapboxToken && (
                   <Button
                     variant="outline"
@@ -179,6 +182,22 @@ const Map = () => {
                   </Button>
                 )}
               </div>
+              
+              {/* Token notice */}
+              {!mapboxToken && (
+                <div className="absolute bottom-4 left-4 right-4 mx-auto max-w-md bg-background/90 p-4 rounded-lg shadow-lg border border-border">
+                  <p className="text-sm font-medium mb-2">Map not loading correctly?</p>
+                  <p className="text-xs text-muted-foreground mb-3">You might need to provide your own Mapbox token.</p>
+                  <Button 
+                    size="sm" 
+                    onClick={openTokenDialog}
+                    className="w-full"
+                  >
+                    <MapPin className="mr-2 h-4 w-4" />
+                    Set Mapbox Token
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -231,7 +250,7 @@ const Map = () => {
         </button>
       )}
 
-      {/* Mapbox Token Dialog */}
+      {/* Mapbox Token Dialog - Make it more user-friendly */}
       <Dialog open={isTokenDialogOpen} onOpenChange={setIsTokenDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -241,7 +260,7 @@ const Map = () => {
               You can get one by signing up at <a href="https://www.mapbox.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline">mapbox.com</a>
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="mapbox-token">Public Access Token</Label>
               <Input 
@@ -253,6 +272,18 @@ const Map = () => {
               <p className="text-xs text-muted-foreground">
                 Use your public token (starts with 'pk.'). Never share your secret token.
               </p>
+            </div>
+            
+            {/* Add steps to get token */}
+            <div className="space-y-2 border-t pt-4">
+              <p className="text-sm font-medium">How to get a Mapbox token:</p>
+              <ol className="text-xs text-muted-foreground space-y-1 pl-4 list-decimal">
+                <li>Create an account at <a href="https://www.mapbox.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline">mapbox.com</a></li>
+                <li>Go to your account dashboard</li>
+                <li>Navigate to "Access tokens"</li>
+                <li>Copy your default public token or create a new one</li>
+                <li>Paste it above</li>
+              </ol>
             </div>
           </div>
           <DialogFooter className="sm:justify-between">

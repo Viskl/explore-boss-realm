@@ -1,9 +1,10 @@
 
 import { useNavigate } from "react-router-dom";
 import { MapPin, Trophy, Users, Clock } from "lucide-react";
-import Button from "./Button";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
-interface BossCardProps {
+export interface BossCardProps {
   id: string;
   name: string;
   image: string;
@@ -29,9 +30,9 @@ const BossCard = ({
   const navigate = useNavigate();
   
   const difficultyColors = {
-    rare: "bg-boss-rare",
-    epic: "bg-boss-epic",
-    legendary: "bg-boss-legendary",
+    rare: "bg-blue-500 text-white",
+    epic: "bg-purple-500 text-white",
+    legendary: "bg-amber-500 text-white",
   };
   
   const difficultyLabels = {
@@ -41,56 +42,61 @@ const BossCard = ({
   };
   
   return (
-    <div className="relative w-full overflow-hidden rounded-xl bg-card border animate-in">
-      <div className="relative aspect-[4/3] overflow-hidden">
+    <div className="overflow-hidden rounded-xl bg-white border shadow-md">
+      <div className="relative aspect-video overflow-hidden">
         <img
           src={image}
           alt={name}
-          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+          className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
         
-        <div className="absolute top-3 left-3 flex items-center gap-2">
-          <span className={`px-2 py-1 rounded-full text-xs font-semibold text-white ${difficultyColors[difficulty]}`}>
+        {/* Difficulty badge */}
+        <div className="absolute top-3 left-3">
+          <Badge className={`px-3 py-1 font-medium ${difficultyColors[difficulty]}`}>
             {difficultyLabels[difficulty]}
-          </span>
-          
-          {distance && (
-            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-black/40 text-white backdrop-blur-sm">
-              {distance}
-            </span>
-          )}
+          </Badge>
         </div>
         
-        <div className="absolute bottom-3 left-3 right-3">
-          <h3 className="text-xl font-bold text-white text-shadow">{name}</h3>
+        {/* Distance badge if available */}
+        {distance && (
+          <div className="absolute top-3 right-3">
+            <Badge className="bg-black/50 text-white backdrop-blur-sm border-none">
+              {distance}
+            </Badge>
+          </div>
+        )}
+        
+        {/* Name and location overlay */}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+          <h3 className="text-xl font-bold text-white">{name}</h3>
           <div className="flex items-center text-white/90 text-sm mt-1">
             <MapPin size={14} className="mr-1" />
-            <span className="truncate">{location}</span>
+            <span>{location}</span>
           </div>
         </div>
       </div>
       
-      <div className="p-4">
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-secondary/50">
-            <Trophy size={18} className="text-primary mb-1" />
+      {/* Details section */}
+      <div className="p-3">
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="flex flex-col items-center justify-center py-2 rounded-lg bg-gray-100">
+            <Trophy size={18} className="text-blue-500 mb-1" />
             <span className="text-xs font-medium">{reward}</span>
           </div>
           
-          <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-secondary/50">
-            <Users size={18} className="text-primary mb-1" />
-            <span className="text-xs font-medium">{teamSize} players</span>
+          <div className="flex flex-col items-center justify-center py-2 rounded-lg bg-gray-100">
+            <Users size={18} className="text-blue-500 mb-1" />
+            <span className="text-xs font-medium">{teamSize} {teamSize === 1 ? 'player' : 'players'}</span>
           </div>
           
-          <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-secondary/50">
-            <Clock size={18} className="text-primary mb-1" />
+          <div className="flex flex-col items-center justify-center py-2 rounded-lg bg-gray-100">
+            <Clock size={18} className="text-blue-500 mb-1" />
             <span className="text-xs font-medium">{timeLimit}</span>
           </div>
         </div>
         
         <Button
-          fullWidth
+          className="w-full"
           onClick={() => navigate(`/boss/${id}`)}
         >
           View Challenge

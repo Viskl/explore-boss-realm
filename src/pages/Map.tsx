@@ -7,6 +7,7 @@ import HotspotMarker from "@/components/HotspotMarker";
 import BossCard from "@/components/BossCard";
 import { useNavigate } from "react-router-dom";
 import MapboxMap from "@/components/MapboxMap";
+import { useToast } from "@/components/ui/use-toast";
 
 // Mock data for bosses with proper typing
 const BOSSES = [
@@ -53,6 +54,7 @@ const Map = () => {
   const [viewMode, setViewMode] = useState<"map" | "list">("map");
   const [isLoading, setIsLoading] = useState(true);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const { toast } = useToast();
   
   useEffect(() => {
     // Simulate loading the map
@@ -95,6 +97,18 @@ const Map = () => {
                   onClick={() => setViewMode("list")}
                 >
                   <List className="h-5 w-5 text-primary" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="bg-white rounded-full shadow-md h-12 w-12"
+                  onClick={() => {
+                    // Clear local storage to force re-entry of the token
+                    localStorage.removeItem('mapbox_token');
+                    window.location.reload();
+                  }}
+                >
+                  <Target className="h-5 w-5 text-primary" />
                 </Button>
               </div>
             </>

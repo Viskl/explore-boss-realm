@@ -15,44 +15,39 @@ interface MapboxMapProps {
   activeSlideIndex: number;
 }
 
-// Fixed token that works for demo purposes
-const MAPBOX_TOKEN_KEY = 'mapbox_token';
-const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoiYWxleC1sb3ZhYmxlIiwiYSI6ImNsb2c2MmdpajBnOXUya3BiYmQ5OXpobDIifQ.Nmh-GJyh1C6KDjDoMHi4Yw';
+// Mapbox token
+const MAPBOX_TOKEN = 'pk.eyJ1IjoiYWxleC1sb3ZhYmxlIiwiYSI6ImNsb2c2MmdpajBnOXUya3BiYmQ5OXpobDIifQ.Nmh-GJyh1C6KDjDoMHi4Yw';
 
-// Default coordinates for Rzeszow, Poland
-const DEFAULT_LONGITUDE = 22.0047;
-const DEFAULT_LATITUDE = 50.0412;
+// Rzeszow, Poland coordinates
+const RZESZOW_LNG = 22.0047;
+const RZESZOW_LAT = 50.0412;
 
 const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const [mapboxToken, setMapboxToken] = useState<string>(() => {
-    return localStorage.getItem(MAPBOX_TOKEN_KEY) || DEFAULT_MAPBOX_TOKEN;
-  });
-  const [userLocation, setUserLocation] = useState<[number, number]>([DEFAULT_LONGITUDE, DEFAULT_LATITUDE]);
   const navigate = useNavigate();
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [tokenInputValue, setTokenInputValue] = useState(DEFAULT_MAPBOX_TOKEN);
-  const [mapError, setMapError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Function to load the map
-  const initializeMap = (token: string) => {
+  useEffect(() => {
     if (!mapContainer.current || map.current) return;
-
+    
     try {
-      mapboxgl.accessToken = token;
+      // Set the token
+      mapboxgl.accessToken = MAPBOX_TOKEN;
       
-      console.log("Initializing map with center:", userLocation);
-      
+      // Create the map
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: "mapbox://styles/mapbox/streets-v12",
-        center: userLocation,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [RZESZOW_LNG, RZESZOW_LAT], // Rzeszow, Poland
         zoom: 13
       });
-
-      map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
+      
+      // Add navigation controls
+      map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      
+      // Add geolocate control
       map.current.addControl(new mapboxgl.GeolocateControl({
         positionOptions: {
           enableHighAccuracy: true
@@ -60,30 +55,30 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) 
         trackUserLocation: true,
         showUserHeading: true
       }));
-
-      map.current.on("load", () => {
+      
+      // When map is loaded
+      map.current.on('load', () => {
         setMapLoaded(true);
-        setMapError(null);
-        console.log("Map loaded successfully");
+        console.log('Map loaded successfully!');
         
-        // Add markers for bosses
-        bosses.forEach((boss, index) => {
-          // Convert percentage positions to longitude/latitude - adding to the user location
-          // This is a simplification - in a real app, you'd have actual geo coordinates
-          const longitude = userLocation[0] + (boss.position.x / 1000);
-          const latitude = userLocation[1] + (boss.position.y / 1000);
+        // Add markers for bosses around Rzeszow
+        bosses.forEach((boss) => {
+          // Create random position near Rzeszow
+          const offsetLng = (boss.position.x / 1000);
+          const offsetLat = (boss.position.y / 1000);
+          const longitude = RZESZOW_LNG + offsetLng;
+          const latitude = RZESZOW_LAT + offsetLat;
           
-          console.log(`Adding boss marker ${boss.name} at: [${longitude}, ${latitude}]`);
-          
-          // Create a marker element
-          const el = document.createElement("div");
+          // Create marker element
+          const el = document.createElement('div');
           el.className = `boss-marker-element ${boss.difficulty}`;
           el.innerHTML = `<div class="w-5 h-5 rounded-full bg-${
             boss.difficulty === "rare" ? "blue" : 
             boss.difficulty === "epic" ? "purple" : "amber"
           }-500 z-10 border-2 border-white"></div>`;
           
-          el.addEventListener("click", () => {
+          // Add click event
+          el.addEventListener('click', () => {
             navigate(`/boss/${boss.id}`);
           });
           
@@ -93,145 +88,40 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) 
             .addTo(map.current!);
         });
       });
-
-      map.current.on("error", (e) => {
-        console.error("Mapbox error:", e);
-        setMapError("There was an error loading the map. Please check your token.");
+      
+      // Handle map errors
+      map.current.on('error', (e) => {
+        console.error('Mapbox error:', e);
         toast({
-          title: "Map Error",
-          description: "There was an error loading the map. Please try refreshing the page.",
-          variant: "destructive"
+          title: 'Map Error',
+          description: 'There was an error loading the map. Please refresh the page.',
+          variant: 'destructive'
         });
       });
-
+      
     } catch (error) {
-      console.error("Error initializing map:", error);
-      setMapError("Failed to initialize map");
+      console.error('Error initializing map:', error);
       toast({
-        title: "Map Error",
-        description: "Failed to initialize the map. Please check your connection and try again.",
-        variant: "destructive"
+        title: 'Map Error',
+        description: 'Failed to initialize the map. Please check your connection.',
+        variant: 'destructive'
       });
     }
-  };
-
-  const saveAndInitializeMap = () => {
-    if (tokenInputValue) {
-      localStorage.setItem(MAPBOX_TOKEN_KEY, tokenInputValue);
-      setMapboxToken(tokenInputValue);
-      
-      // Clear existing map if any
+    
+    // Cleanup
+    return () => {
       if (map.current) {
         map.current.remove();
         map.current = null;
       }
-      
-      // Small delay to ensure DOM is updated
-      setTimeout(() => {
-        initializeMap(tokenInputValue);
-      }, 100);
-    }
-  };
-
-  useEffect(() => {
-    // Get user location
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const longitude = position.coords.longitude;
-          const latitude = position.coords.latitude;
-          console.log("User location found:", [longitude, latitude]);
-          setUserLocation([longitude, latitude]);
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-          // Continue with default location if user location fails
-          toast({
-            title: "Location Not Found",
-            description: "Using default location in Rzeszow, Poland. You can play around this area.",
-          });
-        }
-      );
-    } else {
-      console.log("Geolocation not supported, using default coordinates");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (mapboxToken) {
-      // Small delay to ensure the container is ready
-      const timer = setTimeout(() => {
-        initializeMap(mapboxToken);
-      }, 100);
-      
-      return () => {
-        clearTimeout(timer);
-        if (map.current) {
-          map.current.remove();
-          map.current = null;
-        }
-      };
-    }
-  }, [mapboxToken, userLocation]);
-
-  // Store the default token in localStorage when component mounts
-  useEffect(() => {
-    if (!localStorage.getItem(MAPBOX_TOKEN_KEY) && DEFAULT_MAPBOX_TOKEN) {
-      localStorage.setItem(MAPBOX_TOKEN_KEY, DEFAULT_MAPBOX_TOKEN);
-    }
-  }, []);
+    };
+  }, [bosses, navigate, toast]);
 
   return (
     <div className="relative h-full w-full">
-      {/* Mapbox token input if not set or if there was an error */}
-      {(!mapboxToken || mapError) && (
-        <div className="absolute inset-0 bg-background/95 z-50 flex flex-col items-center justify-center p-6">
-          <div className="bg-card w-full max-w-md p-6 rounded-lg shadow-lg border border-border">
-            <h2 className="text-xl font-bold mb-4">Enter Mapbox API Token</h2>
-            {mapError && (
-              <div className="bg-destructive/10 text-destructive p-3 rounded-md mb-4">
-                <p className="text-sm font-medium">{mapError}</p>
-              </div>
-            )}
-            <p className="text-sm text-muted-foreground mb-4">
-              Using default location: Rzeszow, Poland. Bosses will appear nearby.
-            </p>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="mapbox-token">Mapbox Token</Label>
-                <Input
-                  id="mapbox-token"
-                  type="text"
-                  className="w-full"
-                  placeholder="pk.eyJ1IjoieW91cnVzZXJuYW1lIiwiYSI6..."
-                  value={tokenInputValue}
-                  onChange={(e) => setTokenInputValue(e.target.value)}
-                />
-              </div>
-              <Button
-                className="w-full"
-                onClick={saveAndInitializeMap}
-                disabled={!tokenInputValue}
-              >
-                Load Map
-              </Button>
-              {mapError && (
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setMapError(null)}
-                >
-                  Close and Try Again
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Map container */}
       <div ref={mapContainer} className="h-full w-full" />
-
+      
       {/* Bottom info panel with carousel */}
       {mapLoaded && (
         <div className="absolute bottom-20 left-0 right-0 px-4">

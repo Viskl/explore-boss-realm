@@ -1,9 +1,6 @@
-
 import { useState, useEffect } from "react";
-import { ArrowUp, Compass, List, Target, Filter, RefreshCw } from "lucide-react";
+import { ArrowUp, Compass, List, Filter, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import HotspotMarker from "@/components/HotspotMarker";
 import BossCard from "@/components/BossCard";
 import { useNavigate } from "react-router-dom";
 import MapboxMap from "@/components/MapboxMap";
@@ -54,7 +51,7 @@ const Map = () => {
   const [viewMode, setViewMode] = useState<"map" | "list">("map");
   const [isLoading, setIsLoading] = useState(true);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
-  const [mapReloadTrigger, setMapReloadTrigger] = useState(0);
+  const [mapKey, setMapKey] = useState(0);
   const { toast } = useToast();
   
   useEffect(() => {
@@ -70,13 +67,12 @@ const Map = () => {
     setActiveSlideIndex(index);
   };
 
-  const resetMapToken = () => {
-    localStorage.removeItem('mapbox_token');
+  const resetMap = () => {
     toast({
-      title: "Token Reset",
-      description: "Mapbox token has been reset. Reloading map...",
+      title: "Map Reset",
+      description: "Reloading map...",
     });
-    setMapReloadTrigger(prev => prev + 1); // Trigger map reload
+    setMapKey(prev => prev + 1); // Force component remount
   };
   
   return (
@@ -93,7 +89,7 @@ const Map = () => {
             <>
               {/* Mapbox Map Component */}
               <MapboxMap 
-                key={`map-instance-${mapReloadTrigger}`} // Force re-mount when token is reset
+                key={`map-${mapKey}`} // Force remount when key changes
                 bosses={BOSSES} 
                 onSlideChange={handleSlideChange}
                 activeSlideIndex={activeSlideIndex}
@@ -113,8 +109,8 @@ const Map = () => {
                   variant="outline"
                   size="icon"
                   className="bg-white rounded-full shadow-md h-12 w-12"
-                  onClick={resetMapToken}
-                  title="Reset Mapbox Token"
+                  onClick={resetMap}
+                  title="Reset Map"
                 >
                   <RefreshCw className="h-5 w-5 text-primary" />
                 </Button>

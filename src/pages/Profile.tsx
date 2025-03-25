@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, profile, signOut, isLoading } = useAuth();
+  const { user, profile, signOut, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [profileLoading, setProfileLoading] = useState(true);
   
@@ -27,24 +27,25 @@ const Profile = () => {
   };
   
   useEffect(() => {
-    // Set a timeout to prevent an infinite loading state
-    const timer = setTimeout(() => {
-      setProfileLoading(false);
-    }, 5000);
-    
-    if (!isLoading) {
-      setProfileLoading(false);
-      clearTimeout(timer);
+    // Reset loading state when auth state changes
+    if (!authLoading) {
+      // Short timeout to ensure UI renders smoothly
+      const timer = setTimeout(() => {
+        setProfileLoading(false);
+      }, 500);
       
       if (!user) {
         navigate("/auth");
       }
+      
+      return () => clearTimeout(timer);
     }
-    
-    return () => clearTimeout(timer);
-  }, [user, isLoading, navigate]);
+  }, [user, authLoading, navigate]);
   
-  if (isLoading || profileLoading) {
+  // Check if we're still loading auth or profile data
+  const isLoading = authLoading || profileLoading;
+  
+  if (isLoading) {
     return <LoadingView />;
   }
   
@@ -204,7 +205,6 @@ const LoadingView = () => (
   </div>
 );
 
-// Icon components
 const Trophy = () => (
   <svg viewBox="0 0 24 24" className="w-5 h-5 text-yellow-500">
     <path
@@ -222,7 +222,7 @@ const Bell = () => (
   <svg viewBox="0 0 24 24" className="w-5 h-5 text-blue-500">
     <path
       fill="currentColor"
-      d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2v3c0 3.1-2.7 5.6-4.5 6.3V4c0-.8-.7-1.5-1.5-1.5S10.5 3.2 10.5 4v.7C7.6 5.4 6 7.9 6 11v5l-2 2v1h16v-1l-2-2z"
+      d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.1-1.6-5.6-4.5-6.3V4c0-.8-.7-1.5-1.5-1.5S10.5 3.2 10.5 4v.7C7.6 5.4 6 7.9 6 11v5l-2 2v1h16v-1l-2-2z"
     />
   </svg>
 );

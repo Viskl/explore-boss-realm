@@ -235,17 +235,33 @@ const BossDetails = () => {
     }, 1000);
   };
   
-  const handleChallengeComplete = (success: boolean) => {
+  const handleChallengeComplete = (result: number | boolean) => {
+    // For quiz, result is a number (score)
+    // For tictactoe, result is a boolean (success)
+    let success: boolean;
+    
+    if (typeof result === 'number') {
+      // For quiz challenge, calculate success based on score percentage
+      const totalQuestions = boss.quiz?.length || 1;
+      const percentage = (result / totalQuestions) * 100;
+      success = percentage >= 60; // Success if at least 60% correct
+      
+      if (!success) {
+        alert(`You need at least 60% correct answers to defeat ${boss.name}. Try again!`);
+      }
+    } else {
+      // For tictactoe challenge, result is already a boolean
+      success = result;
+      
+      if (!success) {
+        alert(`You failed to defeat ${boss.name}. Try again!`);
+      }
+    }
+    
     if (success) {
       setShowReward(true);
       setInChallenge(false);
     } else {
-      // Failed the challenge
-      if (boss.challengeType === "quiz") {
-        alert(`You need at least 60% correct answers to defeat ${boss.name}. Try again!`);
-      } else {
-        alert(`You failed to defeat ${boss.name}. Try again!`);
-      }
       setInChallenge(false);
     }
   };

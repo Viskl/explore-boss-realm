@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { User, Medal, Settings, LogOut, ChevronRight, Edit, Camera } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +11,20 @@ const Profile = () => {
   const { user, profile, signOut, isLoading } = useAuth();
   const { toast } = useToast();
   const [profileLoading, setProfileLoading] = useState(true);
+  
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate("/auth");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
   
   useEffect(() => {
     // Set a timeout to prevent an infinite loading state
@@ -59,20 +72,6 @@ const Profile = () => {
       </div>
     );
   }
-  
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate("/auth");
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast({
-        title: "Error",
-        description: "Failed to sign out. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
   
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -223,7 +222,7 @@ const Bell = () => (
   <svg viewBox="0 0 24 24" className="w-5 h-5 text-blue-500">
     <path
       fill="currentColor"
-      d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.1-1.6-5.6-4.5-6.3V4c0-.8-.7-1.5-1.5-1.5S10.5 3.2 10.5 4v.7C7.6 5.4 6 7.9 6 11v5l-2 2v1h16v-1l-2-2z"
+      d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2v3c0 3.1-2.7 5.6-4.5 6.3V4c0-.8-.7-1.5-1.5-1.5S10.5 3.2 10.5 4v.7C7.6 5.4 6 7.9 6 11v5l-2 2v1h16v-1l-2-2z"
     />
   </svg>
 );

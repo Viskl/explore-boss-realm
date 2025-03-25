@@ -1,6 +1,6 @@
 
 import { useNavigate } from "react-router-dom";
-import { MapPin, Trophy, Users, Clock, BrainCircuit } from "lucide-react";
+import { MapPin, Trophy, Users, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 

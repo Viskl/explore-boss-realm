@@ -15,17 +15,18 @@ interface MapboxMapProps {
 }
 
 const MAPBOX_TOKEN_KEY = 'mapbox_token';
+const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1Ijoidmlza2wiLCJhIjoiY204b2hxNXR1MDBmcjJpcXg0Z3Q2cWNvaCJ9.PSrRGBh8ap2GGTLJi8xMeA';
 
 const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapboxToken, setMapboxToken] = useState<string>(() => {
-    return localStorage.getItem(MAPBOX_TOKEN_KEY) || "";
+    return localStorage.getItem(MAPBOX_TOKEN_KEY) || DEFAULT_MAPBOX_TOKEN;
   });
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const navigate = useNavigate();
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [tokenInputValue, setTokenInputValue] = useState("");
+  const [tokenInputValue, setTokenInputValue] = useState(DEFAULT_MAPBOX_TOKEN);
 
   // Function to load the map
   const initializeMap = (token: string) => {
@@ -126,6 +127,13 @@ const MapboxMap = ({ bosses, onSlideChange, activeSlideIndex }: MapboxMapProps) 
       }
     };
   }, [userLocation, mapboxToken]);
+
+  // Store the default token in localStorage when component mounts
+  useEffect(() => {
+    if (!localStorage.getItem(MAPBOX_TOKEN_KEY) && DEFAULT_MAPBOX_TOKEN) {
+      localStorage.setItem(MAPBOX_TOKEN_KEY, DEFAULT_MAPBOX_TOKEN);
+    }
+  }, []);
 
   return (
     <div className="relative h-full w-full">

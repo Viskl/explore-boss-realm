@@ -135,12 +135,18 @@ const SwipeGame: React.FC<SwipeGameProps> = ({ onComplete, difficulty, bossName 
       );
     };
     
-    const animationFrame = requestAnimationFrame(animateTargets);
-    const interval = setInterval(animationFrame, 50);
+    // Fixed: Using requestAnimationFrame correctly
+    let animationFrameId: number;
+    
+    const animate = () => {
+      animateTargets();
+      animationFrameId = requestAnimationFrame(animate);
+    };
+    
+    animationFrameId = requestAnimationFrame(animate);
     
     return () => {
-      cancelAnimationFrame(animationFrame);
-      clearInterval(interval);
+      cancelAnimationFrame(animationFrameId);
     };
   }, [targets, gameStarted, gameOver]);
   
@@ -464,11 +470,6 @@ const SwipeGame: React.FC<SwipeGameProps> = ({ onComplete, difficulty, bossName 
         canvas.width / 2, 
         canvas.height / 2 + 10
       );
-    }
-    
-    // Request animation frame
-    if (gameStarted && !gameOver) {
-      requestAnimationFrame(() => {});
     }
   }, [targets, swipes, bossHealth, gameStarted, gameOver, gameWon, score, settings.bossHealthTotal, difficulty]);
   

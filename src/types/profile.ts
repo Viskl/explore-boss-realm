@@ -6,6 +6,7 @@ export interface UserProfile {
   level: number;
   bosses_defeated: number;
   rewards_earned: number;
+  swipes_performed: number;
   created_at: string;
   updated_at: string;
 }

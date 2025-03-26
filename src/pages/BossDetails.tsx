@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Trophy, MapPin, Users, Clock, Shield, Zap, BrainCircuit, Gauge, Share, Circle, X } from "lucide-react";
+import { ArrowLeft, Trophy, MapPin, Users, Clock, Shield, Zap, BrainCircuit, Gauge, Share, Circle, X, Sword } from "lucide-react";
 import Button from "@/components/Button";
 import QRCode from "@/components/QRCode";
 import QuizComponent from "@/components/QuizComponent";
 import TicTacToeGame from "@/components/TicTacToeGame";
+import SwipeGame from "@/components/SwipeGame";
 import { Question } from "@/components/QuizComponent";
 
 const BOSSES = {
@@ -186,6 +187,32 @@ const BOSSES = {
       logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Jamba_2017.svg/2560px-Jamba_2017.svg.png"
     },
     quiz: []
+  },
+  swipeboss: {
+    id: "swipeboss",
+    name: "Blade Master",
+    image: "https://images.unsplash.com/photo-1546182990-dffeafbe841d?q=80&w=2218&auto=format&fit=crop",
+    description: "A formidable opponent that can only be defeated by swift, precise strikes. Test your reflexes in this swipe challenge!",
+    location: "Downtown Square",
+    difficulty: "legendary",
+    reward: "Free Movie Ticket at AMC",
+    teamSize: 1,
+    timeLimit: "30 sec",
+    distance: "0.7 mi",
+    challengeType: "swipe",
+    stats: {
+      health: 90,
+      power: 85,
+      defense: 60,
+      speed: 95
+    },
+    business: {
+      name: "AMC Theaters",
+      offer: "Free Movie Ticket",
+      validUntil: "Dec 31, 2023",
+      logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/AMC_Theatres_Logo.svg/2560px-AMC_Theatres_Logo.svg.png"
+    },
+    quiz: []
   }
 };
 
@@ -228,7 +255,6 @@ const BossDetails = () => {
   
   const handleStartChallenge = () => {
     setIsLoading(true);
-    // Simulate loading time
     setTimeout(() => {
       setIsLoading(false);
       setInChallenge(true);
@@ -236,21 +262,17 @@ const BossDetails = () => {
   };
   
   const handleChallengeComplete = (result: number | boolean) => {
-    // For quiz, result is a number (score)
-    // For tictactoe, result is a boolean (success)
     let success: boolean;
     
     if (typeof result === 'number') {
-      // For quiz challenge, calculate success based on score percentage
       const totalQuestions = boss.quiz?.length || 1;
       const percentage = (result / totalQuestions) * 100;
-      success = percentage >= 60; // Success if at least 60% correct
+      success = percentage >= 60;
       
       if (!success) {
         alert(`You need at least 60% correct answers to defeat ${boss.name}. Try again!`);
       }
     } else {
-      // For tictactoe challenge, result is already a boolean
       success = result;
       
       if (!success) {
@@ -276,7 +298,6 @@ const BossDetails = () => {
         />
       );
     } else if (boss.challengeType === "tictactoe") {
-      // Convert string difficulty to proper type
       const tictactoeDifficulty = (boss.difficulty === "rare" || boss.difficulty === "epic" || boss.difficulty === "legendary") 
         ? boss.difficulty 
         : "epic" as const;
@@ -285,6 +306,18 @@ const BossDetails = () => {
         <TicTacToeGame
           onComplete={handleChallengeComplete}
           difficulty={tictactoeDifficulty}
+        />
+      );
+    } else if (boss.challengeType === "swipe") {
+      const swipeDifficulty = (boss.difficulty === "rare" || boss.difficulty === "epic" || boss.difficulty === "legendary") 
+        ? boss.difficulty 
+        : "epic" as const;
+      
+      return (
+        <SwipeGame
+          onComplete={handleChallengeComplete}
+          difficulty={swipeDifficulty}
+          bossName={boss.name}
         />
       );
     }
@@ -297,6 +330,8 @@ const BossDetails = () => {
       return <BrainCircuit size={24} className="text-primary mb-2" />;
     } else if (boss.challengeType === "tictactoe") {
       return <div className="flex mb-2"><Circle size={20} className="text-primary mr-1" /><X size={20} className="text-primary" /></div>;
+    } else if (boss.challengeType === "swipe") {
+      return <Sword size={24} className="text-primary mb-2" />;
     }
     
     return <BrainCircuit size={24} className="text-primary mb-2" />;
@@ -307,6 +342,8 @@ const BossDetails = () => {
       return "Quiz Challenge";
     } else if (boss.challengeType === "tictactoe") {
       return "Tic-Tac-Toe";
+    } else if (boss.challengeType === "swipe") {
+      return "Swipe Attack";
     }
     
     return "Challenge";
@@ -514,3 +551,4 @@ const StatBar = ({ label, value, icon, color }: StatBarProps) => {
 };
 
 export default BossDetails;
+

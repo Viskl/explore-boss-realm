@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { useToast } from '@/hooks/use-toast';
+import { UserProfile } from '@/types/profile';
 
 interface AuthContextType {
   session: Session | null;
@@ -15,17 +16,6 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
 }
 
-interface UserProfile {
-  id: string;
-  username: string | null;
-  avatar_url: string | null;
-  level: number;
-  bosses_defeated: number;
-  rewards_earned: number;
-  created_at: string;
-  updated_at: string;
-}
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -37,7 +27,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event);
@@ -49,7 +38,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           setProfile(null);
           
-          // Only set loading to false if initial load is complete
           if (initialLoadComplete) {
             setIsLoading(false);
           }
@@ -57,7 +45,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);

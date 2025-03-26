@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -75,7 +76,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
 
-      setProfile(data);
+      // Ensure the profile data includes the swipes_performed field
+      // If it doesn't exist in the database, default to 0
+      setProfile({
+        ...data,
+        swipes_performed: data.swipes_performed !== undefined ? data.swipes_performed : 0
+      } as UserProfile);
     } catch (error) {
       console.error('Error fetching profile:', error);
       toast({

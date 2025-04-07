@@ -76,12 +76,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
 
-      // Ensure the profile data includes the swipes_performed field
-      // If it doesn't exist in the database, default to 0
-      setProfile({
+      // Create a profile object with swipes_performed defaulting to 0 if not present
+      const profileData = {
         ...data,
-        swipes_performed: data.swipes_performed !== undefined ? data.swipes_performed : 0
-      } as UserProfile);
+        swipes_performed: data.swipes_performed || 0
+      };
+
+      setProfile(profileData as UserProfile);
     } catch (error) {
       console.error('Error fetching profile:', error);
       toast({

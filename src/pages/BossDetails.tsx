@@ -222,6 +222,7 @@ const BossDetails = () => {
   const [showReward, setShowReward] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [inChallenge, setInChallenge] = useState(false);
+  const [selectedChallenge, setSelectedChallenge] = useState<"quiz" | "tictactoe" | "swipe" | null>(null);
   
   const boss = BOSSES[id as keyof typeof BOSSES];
   
@@ -253,8 +254,9 @@ const BossDetails = () => {
     legendary: "Legendary",
   };
   
-  const handleStartChallenge = () => {
+  const handleStartChallenge = (challengeType: "quiz" | "tictactoe" | "swipe") => {
     setIsLoading(true);
+    setSelectedChallenge(challengeType);
     setTimeout(() => {
       setIsLoading(false);
       setInChallenge(true);
@@ -289,7 +291,9 @@ const BossDetails = () => {
   };
   
   const renderChallenge = () => {
-    if (boss.challengeType === "quiz") {
+    const challengeType = selectedChallenge || boss.challengeType;
+    
+    if (challengeType === "quiz") {
       return (
         <QuizComponent 
           questions={boss.quiz}
@@ -297,7 +301,7 @@ const BossDetails = () => {
           bossName={boss.name}
         />
       );
-    } else if (boss.challengeType === "tictactoe") {
+    } else if (challengeType === "tictactoe") {
       const tictactoeDifficulty = (boss.difficulty === "rare" || boss.difficulty === "epic" || boss.difficulty === "legendary") 
         ? boss.difficulty 
         : "epic" as const;
@@ -308,7 +312,7 @@ const BossDetails = () => {
           difficulty={tictactoeDifficulty}
         />
       );
-    } else if (boss.challengeType === "swipe") {
+    } else if (challengeType === "swipe") {
       const swipeDifficulty = (boss.difficulty === "rare" || boss.difficulty === "epic" || boss.difficulty === "legendary") 
         ? boss.difficulty 
         : "epic" as const;
@@ -507,15 +511,46 @@ const BossDetails = () => {
               </div>
             </div>
             
-            <Button
-              fullWidth
-              size="lg"
-              onClick={handleStartChallenge}
-              isLoading={isLoading}
-              className="shadow-xl"
-            >
-              Start {getChallengeTypeName()}
-            </Button>
+            <div className="space-y-3">
+              <Button
+                fullWidth
+                size="lg"
+                onClick={() => handleStartChallenge(boss.challengeType as "quiz" | "tictactoe" | "swipe")}
+                isLoading={isLoading && selectedChallenge === boss.challengeType}
+                className="shadow-xl"
+              >
+                Start {getChallengeTypeName()}
+              </Button>
+              
+              {boss.challengeType !== "quiz" && (
+                <Button
+                  fullWidth
+                  size="lg"
+                  variant="secondary"
+                  onClick={() => handleStartChallenge("quiz")}
+                  isLoading={isLoading && selectedChallenge === "quiz"}
+                  className="shadow-xl"
+                  leftIcon={<BrainCircuit size={20} />}
+                >
+                  Start Quiz Game
+                </Button>
+              )}
+              
+              {boss.challengeType !== "tictactoe" && boss.id !== "featured" && (
+                <Button
+                  fullWidth
+                  size="lg"
+                  variant="outline"
+                  onClick={() => handleStartChallenge("tictactoe")}
+                  isLoading={isLoading && selectedChallenge === "tictactoe"}
+                  className="shadow-xl"
+                  leftIcon={<Circle size={20} />}
+                  rightIcon={<X size={20} />}
+                >
+                  Start Tic-Tac-Toe
+                </Button>
+              )}
+            </div>
           </div>
         </>
       )}
@@ -551,4 +586,3 @@ const StatBar = ({ label, value, icon, color }: StatBarProps) => {
 };
 
 export default BossDetails;
-
